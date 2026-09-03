@@ -788,7 +788,7 @@ bool Arguments::atojulong(const char *s, julong* result) {
   julong n = 0;
 
   // First char must be a digit. Don't allow negative numbers or leading spaces.
-  if (!isdigit(*s)) {
+  if (!isdigit((unsigned char)*s)) {
     return false;
   }
 

@@ -161,7 +161,7 @@ void fieldDescriptor::print_on_for(outputStream* st, oop obj) {
       {
         jchar c = obj->char_field(offset());
         as_int = c;
-        st->print(" %c %d", isprint(c) ? c : ' ', c);
+        st->print(" %c %d", (c <= 0xff && isprint(c)) ? c : ' ', c);
       }
       break;
     case T_DOUBLE:

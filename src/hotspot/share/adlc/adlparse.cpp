@@ -1805,7 +1805,7 @@ void ADLParser::pipe_class_parse(PipelineForm &pipeline) {
         return;
       }
       next_char(); skipws();
-      if( !isdigit(_curchar) ) {
+      if( !isdigit((unsigned char)_curchar) ) {
         parse_err(SYNERR, "number expected for \"%c\" in latency definition\n", _curchar);
         return;
       }
@@ -2683,7 +2683,7 @@ void ADLParser::peep_constraint_parse(Peephole &peep) {
     skipws();
     // Get information on the right instruction and its operand
     int right_inst;        // Right-instructions's number
-    if( isdigit(_curchar) ) {
+    if( isdigit((unsigned char)_curchar) ) {
       right_inst = get_int();
       // Right-instruction's operand
       skipws();

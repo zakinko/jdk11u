@@ -159,7 +159,7 @@ bool error_is_suppressed(const char* file_name, int line_no) {
     sfile_len = cp - sfile;
     if ((*cp) == ':')  cp++;
     sline = 0;
-    while ((*cp) != '\0' && isdigit(*cp)) {
+    while ((*cp) != '\0' && isdigit((unsigned char)*cp)) {
       sline *= 10;
       sline += (*cp) - '0';
       cp++;
