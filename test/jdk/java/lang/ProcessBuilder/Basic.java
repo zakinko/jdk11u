@@ -2202,8 +2202,16 @@ public class Basic {
                             }
                             equal(-1, r);
                         } catch (IOException ioe) {
-                            if (!ioe.getMessage().equals("Stream closed")) {
+                            String m = ioe.getMessage();
+                            if (!m.equals("Stream closed")
+                                && !m.equals("Bad file descriptor")) {
                                 // BufferedInputStream may throw IOE("Stream closed").
+                                // A read that was already under way when the
+                                // reaper closed the pipe fails instead of
+                                // returning EOF where close() invalidates it for
+                                // the reader, as it does on NetBSD; the message
+                                // is then the errno's.  Either way the stream is
+                                // gone, which is what this is checking.
                                 unexpected(ioe);
                             }
                         } catch (Throwable t) { unexpected(t); }}};
