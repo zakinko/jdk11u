@@ -321,6 +321,7 @@ JNIEXPORT jint JNICALL
 Java_sun_nio_ch_FileDispatcherImpl_setDirect0(JNIEnv *env, jclass clazz,
                                            jobject fdo)
 {
+#if defined(O_DIRECT) || defined(F_NOCACHE) || defined(DIRECTIO_ON)
     jint fd = fdval(env, fdo);
     jint result;
 #ifdef MACOSX
@@ -329,7 +330,6 @@ Java_sun_nio_ch_FileDispatcherImpl_setDirect0(JNIEnv *env, jclass clazz,
     struct statvfs64 file_stat;
 #endif
 
-#if defined(O_DIRECT) || defined(F_NOCACHE) || defined(DIRECTIO_ON)
 #ifdef O_DIRECT
     jint orig_flag;
     orig_flag = fcntl(fd, F_GETFL);
@@ -366,8 +366,9 @@ Java_sun_nio_ch_FileDispatcherImpl_setDirect0(JNIEnv *env, jclass clazz,
     } else {
         result = (int)file_stat.f_frsize;
     }
-#else
-    result == -1;
-#endif
     return result;
+#else
+    // No direct I/O to ask about, and nothing to ask it of.
+    return -1;
+#endif
 }
