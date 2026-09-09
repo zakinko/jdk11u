@@ -93,7 +93,13 @@ public class SigTestDriver {
 
         boolean passed = true;
 
-        for (String mode : new String[] {"sigset", "sigaction"}) {
+        // OpenBSD dropped the obsolete sigset(3) and DragonFly never had it,
+        // so exesigtest has no sigset mode to offer there.
+        String[] modes = Platform.isOpenBsd() || Platform.isDragonFly()
+                ? new String[] {"sigaction"}
+                : new String[] {"sigset", "sigaction"};
+
+        for (String mode : modes) {
             for (String scenario : new String[] {"nojvm", "prepre", "prepost", "postpre", "postpost"}) {
                 cmd.set(modeIdx, mode);
                 cmd.set(scenarioIdx, scenario);

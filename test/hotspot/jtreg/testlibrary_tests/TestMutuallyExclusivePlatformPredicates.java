@@ -47,12 +47,16 @@ public class TestMutuallyExclusivePlatformPredicates {
     private static enum MethodGroup {
         ARCH("isAArch64", "isARM", "isPPC", "isS390x", "isSparc", "isX64", "isX86"),
         BITNESS("is32bit", "is64bit"),
-        OS("isAix", "isLinux", "isOSX", "isSolaris", "isWindows"),
+        OS("isAix", "isBsd", "isLinux", "isOSX", "isSolaris", "isWindows"),
         VM_TYPE("isClient", "isServer", "isGraal", "isMinimal", "isZero", "isEmbedded"),
         MODE("isInt", "isMixed", "isComp"),
         IGNORED("isEmulatedClient", "isDebugBuild", "isFastDebugBuild", "isSlowDebugBuild",
                 "hasSA", "isRoot", "isTieredSupported", "areCustomLoadersSupportedForCDS",
-                "isHardenedOSX", "hasOSXPlistEntries", "isOracleLinux7");
+                "isHardenedOSX", "hasOSXPlistEntries", "isOracleLinux7",
+                // isOpenBsd and isDragonFly are ignored rather than sitting in OS:
+                // each names one of the systems isBsd covers, so the two are true
+                // together and the group is checked for mutual exclusion.
+                "isOpenBsd", "isDragonFly");
 
         public final List<String> methodNames;
 
