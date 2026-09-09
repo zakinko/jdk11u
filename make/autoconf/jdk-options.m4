@@ -241,6 +241,14 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_JDK_OPTIONS],
   if test "x$OPENJDK_TARGET_CPU" = xs390x ; then
     INCLUDE_SA=false
   fi
+  # SA reads a process's mappings through kinfo_getvmmap(3).  OpenBSD's
+  # kinfo_vmentry carries the ranges without the path of the file each came
+  # from, and DragonFly has neither the function nor the struct, so on both
+  # there is no way to name the load objects and no symbols to read.
+  if test "x$OPENJDK_TARGET_OS_ENV" = xbsd.openbsd \
+      || test "x$OPENJDK_TARGET_OS_ENV" = xbsd.dragonfly ; then
+    INCLUDE_SA=false
+  fi
   AC_SUBST(INCLUDE_SA)
 
   # Compress jars
@@ -316,7 +324,8 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_DEBUG_SYMBOLS],
     ZIP_EXTERNAL_DEBUG_SYMBOLS=false
   elif test "x$with_native_debug_symbols" = xexternal; then
 
-    if test "x$OPENJDK_TARGET_OS" = xsolaris || test "x$OPENJDK_TARGET_OS" = xlinux; then
+    if test "x$OPENJDK_TARGET_OS" = xsolaris || test "x$OPENJDK_TARGET_OS" = xlinux \
+        || test "x$OPENJDK_TARGET_OS" = xbsd; then
       if test "x$OBJCOPY" = x; then
         # enabling of enable-debug-symbols and can't find objcopy
         # this is an error
@@ -329,7 +338,8 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_DEBUG_SYMBOLS],
     ZIP_EXTERNAL_DEBUG_SYMBOLS=false
   elif test "x$with_native_debug_symbols" = xzipped; then
 
-    if test "x$OPENJDK_TARGET_OS" = xsolaris || test "x$OPENJDK_TARGET_OS" = xlinux; then
+    if test "x$OPENJDK_TARGET_OS" = xsolaris || test "x$OPENJDK_TARGET_OS" = xlinux \
+        || test "x$OPENJDK_TARGET_OS" = xbsd; then
       if test "x$OBJCOPY" = x; then
         # enabling of enable-debug-symbols and can't find objcopy
         # this is an error

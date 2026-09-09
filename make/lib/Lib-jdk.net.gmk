@@ -27,6 +27,10 @@ include LibCommon.gmk
 
 ################################################################################
 
+# The extended socket options are implemented per platform, and the BSDs have
+# no <os>SocketOptions.c yet.  ExtendedSocketOptions falls back to the base
+# PlatformSocketOptions there, which reports every option as unsupported, so
+# there is nothing for libextnet to hold.
 ifeq ($(call isTargetOs, solaris linux macosx), true)
 
   $(eval $(call SetupJdkLibrary, BUILD_LIBEXTNET, \

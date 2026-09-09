@@ -75,6 +75,14 @@ else
   UNIX_LDFLAGS_JLI := -L$(SUPPORT_OUTPUTDIR)/modules_libs/java.base/jli
   BUILD_JDK_JTREG_EXECUTABLES_LDFLAGS_exeJliLaunchTest := $(UNIX_LDFLAGS_JLI)
   BUILD_JDK_JTREG_EXECUTABLES_LIBS_exeJliLaunchTest := -ljli
+  ifeq ($(OPENJDK_TARGET_OS_ENV), bsd.openbsd)
+    # libjli is a static library on OpenBSD, so what it links against has to
+    # be named here; see make/lib/CoreLibraries.gmk.
+    BUILD_JDK_JTREG_EXECUTABLES_LDFLAGS_exeJliLaunchTest := \
+        -L$(SUPPORT_OUTPUTDIR)/native/java.base
+    BUILD_JDK_JTREG_EXECUTABLES_LIBS_exeJliLaunchTest := -ljli_static \
+        $(LIBZ_LIBS) -lpthread
+  endif
 endif
 
 ifeq ($(call isTargetOs, macosx), true)

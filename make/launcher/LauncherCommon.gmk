@@ -160,6 +160,17 @@ define SetupBuildLauncherBody
     $1_LIBS += -ljli_static
   endif
 
+  # libjli is a static library on OpenBSD (see CoreLibraries.gmk), so what
+  # it in turn links against has to be named here: a static library carries
+  # no NEEDED entries to bring them along.
+  ifeq ($(OPENJDK_TARGET_OS_ENV), bsd.openbsd)
+    $1_LDFLAGS += -L$(SUPPORT_OUTPUTDIR)/native/java.base
+    $1_LIBS += -ljli_static $(LIBZ_LIBS)
+  else ifeq ($(OPENJDK_TARGET_OS), bsd)
+    $1_LDFLAGS += -L$(call FindLibDirForModule, java.base)/jli
+    $1_LIBS += -ljli
+  endif
+
   ifeq ($(USE_EXTERNAL_LIBZ), true)
     $1_LIBS += -lz
   endif
@@ -190,6 +201,7 @@ define SetupBuildLauncherBody
       LIBS := $(JDKEXE_LIBS) $$($1_LIBS), \
       LIBS_unix := $$($1_LIBS_unix), \
       LIBS_linux := -lpthread -ljli $(LIBDL), \
+      LIBS_bsd := -lpthread, \
       LIBS_macosx := -ljli, \
       LIBS_solaris := -ljli -lthread $(LIBDL), \
       LIBS_windows := $$($1_WINDOWS_JLI_LIB) \
@@ -207,7 +219,7 @@ define SetupBuildLauncherBody
 
   $$(BUILD_LAUNCHER_$1): $$(BUILD_PLIST_$1)
 
-  ifeq ($(call isTargetOs, aix), true)
+  ifneq ($(filter aix bsd.openbsd, $(OPENJDK_TARGET_OS) $(OPENJDK_TARGET_OS_ENV)), )
     $$(BUILD_LAUNCHER_$1): $(call FindStaticLib, java.base, jli_static)
   endif
 

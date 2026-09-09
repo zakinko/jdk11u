@@ -140,7 +140,7 @@ ifeq ($(call isTargetOs, windows), true)
       #
 endif
 
-ifeq ($(call isTargetOs, solaris linux macosx aix), true)
+ifeq ($(call isTargetOs, solaris linux macosx aix bsd), true)
   LIBAWT_EXFILES += awt_Font.c CUPSfuncs.c fontpath.c X11Color.c
 endif
 
@@ -308,7 +308,7 @@ ifeq ($(call isTargetOs, windows macosx), false)
 
     LIBAWT_XAWT_LIBS := $(LIBM) -lawt -lXext -lX11 -lXrender $(LIBDL) -lXtst -lXi -ljava -ljvm
 
-    ifeq ($(call isTargetOs, linux), true)
+    ifeq ($(call isTargetOs, linux bsd), true)
       LIBAWT_XAWT_LIBS += -lpthread
     endif
 
@@ -388,7 +388,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBLCMS, \
         libawt/java2d, \
     HEADERS_FROM_SRC := $(LIBLCMS_HEADERS_FROM_SRC), \
     DISABLED_WARNINGS_gcc := format-nonliteral misleading-indentation stringop-truncation, \
-    DISABLED_WARNINGS_clang := tautological-compare, \
+    DISABLED_WARNINGS_clang := tautological-compare char-subscripts, \
     DISABLED_WARNINGS_solstudio := E_STATEMENT_NOT_REACHED, \
     DISABLED_WARNINGS_microsoft := 4819, \
     LDFLAGS := $(LDFLAGS_JDKLIB) \
@@ -869,6 +869,8 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
         -framework Cocoa
   else ifeq ($(call isTargetOs, windows), true)
     LIBSPLASHSCREEN_LIBS += kernel32.lib user32.lib gdi32.lib delayimp.lib $(WIN_JAVA_LIB) jvm.lib
+  else ifeq ($(call isTargetOs, bsd), true)
+    LIBSPLASHSCREEN_LIBS += $(X_LIBS) -lX11 -lXext $(LIBM) -lpthread
   else
     LIBSPLASHSCREEN_LIBS += $(X_LIBS) -lX11 -lXext $(LIBM) -lpthread -ldl
   endif

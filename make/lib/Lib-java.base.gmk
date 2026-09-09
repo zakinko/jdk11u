@@ -79,6 +79,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBNIO, \
         $(call SET_SHARED_LIBRARY_ORIGIN), \
     LIBS_unix := -ljava -lnet, \
     LIBS_linux := -lpthread $(LIBDL), \
+    LIBS_bsd := -lpthread, \
     LIBS_solaris := -ljvm -lsocket -lposix4 $(LIBDL) \
         -lsendfile, \
     LIBS_aix := $(LIBDL), \

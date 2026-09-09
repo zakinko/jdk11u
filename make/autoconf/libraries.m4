@@ -124,7 +124,10 @@ AC_DEFUN_ONCE([LIB_SETUP_LIBRARIES],
   fi
 
   # Threading library
-  if test "x$OPENJDK_TARGET_OS" = xlinux || test "x$OPENJDK_TARGET_OS" = xaix; then
+  # macOS carries the pthread functions in libSystem, but the other BSDs keep
+  # them in libpthread and need it named.
+  if test "x$OPENJDK_TARGET_OS" = xlinux || test "x$OPENJDK_TARGET_OS" = xaix \
+      || test "x$OPENJDK_TARGET_OS" = xbsd; then
     BASIC_JVM_LIBS="$BASIC_JVM_LIBS -lpthread"
   elif test "x$OPENJDK_TARGET_OS" = xsolaris; then
     BASIC_JVM_LIBS="$BASIC_JVM_LIBS -lthread"

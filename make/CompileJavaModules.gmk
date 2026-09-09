@@ -58,7 +58,9 @@ ifeq ($(call isTargetOs, solaris), false)
       #
 endif
 
-ifeq ($(call isTargetOs, solaris macosx aix), false)
+# BsdFileSystem.newWatchService() returns one of these, and macosx is not
+# the only OS that uses BsdFileSystem.
+ifeq ($(call isTargetOs, solaris macosx aix bsd), false)
   java.base_EXCLUDE_FILES += sun/nio/fs/PollingWatchService.java
 endif
 
