@@ -45,6 +45,7 @@
 #if defined(__solaris__)
 #define _POSIX_PTHREAD_SEMANTICS
 #endif
+
 #include <pwd.h>
 #include <grp.h>
 

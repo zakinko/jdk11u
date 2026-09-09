@@ -161,6 +161,8 @@ final class ProcessImpl extends Process {
             if (osName.equals("Linux")) { return LINUX; }
             if (osName.contains("OS X")) { return BSD; }
             if (osName.equals("SunOS")) { return SOLARIS; }
+            // uname(3)'s sysname: FreeBSD, NetBSD, OpenBSD, DragonFly.
+            if (osName.endsWith("BSD") || osName.equals("DragonFly")) { return BSD; }
             if (osName.equals("AIX")) { return AIX; }
 
             throw new Error(osName + " is not a supported OS platform.");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,41 +22,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package sun.nio.ch;
 
-#ifndef _JAVASOFT_JNI_MD_H_
-#define _JAVASOFT_JNI_MD_H_
+import java.io.IOException;
 
-#ifndef __has_attribute
-  #define __has_attribute(x) 0
-#endif
-#if (defined(__GNUC__) && ((__GNUC__ > 4) || (__GNUC__ == 4) && (__GNUC_MINOR__ > 2))) || __has_attribute(visibility)
-  #ifdef ARM
-    #define JNIEXPORT     __attribute__((externally_visible,visibility("default")))
-    #define JNIIMPORT     __attribute__((externally_visible,visibility("default")))
-  #else
-    #define JNIEXPORT     __attribute__((visibility("default")))
-    #define JNIIMPORT     __attribute__((visibility("default")))
-  #endif
-#else
-  #define JNIEXPORT
-  #define JNIIMPORT
-#endif
-
-#define JNICALL
-
-typedef int jint;
-/*
- * jlong has to be the same type as int64_t, or every format string that
- * describes one describes the other wrongly.  That is "long" on LP64 for
- * every system here except OpenBSD, which spells int64_t "long long"
- * whatever the model.
+/**
+ * Default PollerProvider for macOS.
  */
-#if defined(_LP64) && !defined(__OpenBSD__)
-typedef long jlong;
-#else
-typedef long long jlong;
-#endif
+class DefaultPollerProvider extends PollerProvider {
+    DefaultPollerProvider(Poller.Mode mode) {
+        super(mode);
+    }
 
-typedef signed char jbyte;
+    DefaultPollerProvider() {
+        this(Poller.Mode.SYSTEM_THREADS);
+    }
 
-#endif /* !_JAVASOFT_JNI_MD_H_ */
+    @Override
+    Poller readPoller(boolean subPoller) throws IOException {
+        return new KQueuePoller(pollerMode(), subPoller, true);
+    }
+
+    @Override
+    Poller writePoller(boolean subPoller) throws IOException {
+        return new KQueuePoller(pollerMode(), subPoller, false);
+    }
+}
