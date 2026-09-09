@@ -46,7 +46,12 @@
 #include <sys/utsname.h>
 #include <time.h>
 #include <unistd.h>
-#include <utmpx.h>
+#ifdef __OpenBSD__
+  // OpenBSD carries no utmpx; print_uptime_info() asks the kernel there.
+  #include <sys/sysctl.h>
+#else
+  #include <utmpx.h>
+#endif
 
 // Todo: provide a os::get_max_process_id() or similar. Number of processes
 // may have been configured, can be read more accurately from proc fs etc.
@@ -238,6 +243,23 @@ static int util_posix_fallocate(int fd, off_t offset, off_t len) {
     return ftruncate(fd, len);
   }
   return -1;
+#elif defined(__OpenBSD__)
+  // OpenBSD has no posix_fallocate at all.  ftruncate gives a file of the
+  // right size and gives up the guarantee that the space is there, which is
+  // the trade the other arms here make when the file system says it cannot
+  // preallocate.
+  return ftruncate(fd, offset + len) == 0 ? 0 : errno;
+#elif defined(_ALLBSD_SOURCE)
+  // NetBSD, FreeBSD and OpenBSD answer EOPNOTSUPP for a file system that
+  // cannot preallocate -- FFS is one -- rather than filling the range in
+  // themselves the way glibc does.  ftruncate still gives a file of the
+  // right size; what is lost is the guarantee that the space is there,
+  // which is the same trade macOS makes above when F_PREALLOCATE fails.
+  int ret = posix_fallocate(fd, offset, len);
+  if (ret == EOPNOTSUPP || ret == EINVAL || ret == ENODEV) {
+    return ftruncate(fd, offset + len) == 0 ? 0 : errno;
+  }
+  return ret;
 #else
   return posix_fallocate(fd, offset, len);
 #endif
@@ -379,6 +401,17 @@ void os::Posix::print_load_average(outputStream* st) {
 void os::Posix::print_uptime_info(outputStream* st) {
   int bootsec = -1;
   int currsec = time(NULL);
+#ifdef __OpenBSD__
+  // No utmpx here.  KERN_BOOTTIME is what the kernel actually knows, and is
+  // the answer the utx chain is standing in for -- badly, per the note
+  // above.
+  struct timeval boottime;
+  size_t size = sizeof(boottime);
+  int mib[2] = { CTL_KERN, KERN_BOOTTIME };
+  if (sysctl(mib, 2, &boottime, &size, NULL, 0) == 0 && size > 0) {
+    bootsec = (int)boottime.tv_sec;
+  }
+#else
   struct utmpx* ent;
   setutxent();
   while ((ent = getutxent())) {
@@ -387,6 +420,7 @@ void os::Posix::print_uptime_info(outputStream* st) {
       break;
     }
   }
+#endif
 
   if (bootsec != -1) {
     os::print_dhm(st, "OS uptime:", (long) (currsec-bootsec));
@@ -433,16 +467,20 @@ void os::Posix::print_rlimit_info(outputStream* st) {
 #endif
 
   print_rlimit(st, ", NOFILE", RLIMIT_NOFILE);
+#ifdef RLIMIT_AS
+  // OpenBSD limits the data segment but has no address-space limit.
   print_rlimit(st, ", AS", RLIMIT_AS, true);
+#endif
   print_rlimit(st, ", CPU", RLIMIT_CPU);
   print_rlimit(st, ", DATA", RLIMIT_DATA, true);
 
   // maximum size of files that the process may create
   print_rlimit(st, ", FSIZE", RLIMIT_FSIZE, true);
 
-#if defined(LINUX) || defined(__APPLE__)
   // maximum number of bytes of memory that may be locked into RAM
-  // (rounded down to the nearest  multiple of system pagesize)
+  // (rounded down to the nearest  multiple of system pagesize).  Ask for the
+  // limit by name rather than by platform; the BSDs have it too.
+#ifdef RLIMIT_MEMLOCK
   print_rlimit(st, ", MEMLOCK", RLIMIT_MEMLOCK, true);
 #endif
 

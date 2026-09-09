@@ -61,7 +61,10 @@ const bool CCallingConventionRequiresIntsAsLongs = false;
 #define INCLUDE_RTM_OPT 1
 #endif
 
-#if defined(LINUX) || defined(SOLARIS) || defined(__APPLE__)
+// The reserved stack area is implemented in share/ and in cpu/x86; nothing
+// under os/ takes part, so the test is about the CPU port rather than about
+// the operating system.  _ALLBSD_SOURCE covers macOS as well.
+#if defined(LINUX) || defined(SOLARIS) || defined(_ALLBSD_SOURCE)
 #define SUPPORT_RESERVED_STACK_AREA
 #endif
 

@@ -25,6 +25,7 @@
 // no precompiled headers
 #include "memory/allocation.inline.hpp"
 #include "runtime/mutexLocker.hpp"
+#include "runtime/os.hpp"
 #include "runtime/osThread.hpp"
 
 #include <signal.h>
@@ -37,6 +38,9 @@ void OSThread::pd_initialize() {
   _thread_id        = NULL;
 #endif
   _pthread_id       = NULL;
+#ifdef __OpenBSD__
+  _cpu_clockid = (clockid_t)-1;
+#endif
   _siginfo = NULL;
   _ucontext = NULL;
   _expanding_stack = 0;
