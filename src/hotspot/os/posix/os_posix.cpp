@@ -553,17 +553,23 @@ bool os::get_host_name(char* buf, size_t buflen) {
 }
 
 bool os::has_allocatable_memory_limit(julong* limit) {
+  bool result;
+#ifndef RLIMIT_AS
+  // OpenBSD limits the data segment but has no address-space limit to read,
+  // so there is no ceiling to report here.
+  result = false;
+#else
   struct rlimit rlim;
   int getrlimit_res = getrlimit(RLIMIT_AS, &rlim);
   // if there was an error when calling getrlimit, assume that there is no limitation
   // on virtual memory.
-  bool result;
   if ((getrlimit_res != 0) || (rlim.rlim_cur == RLIM_INFINITY)) {
     result = false;
   } else {
     *limit = (julong)rlim.rlim_cur;
     result = true;
   }
+#endif
 #ifdef _LP64
   return result;
 #else
