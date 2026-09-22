@@ -1,16 +1,20 @@
 #
 #   generate these charsets into sun.nio.cs
 #
-#   EUC_JP_LINUX must stay wherever EUC_JP is: the generated EUC_JP_LINUX
-#   reaches into EUC_JP's Encoder, which is package private, so splitting the
-#   pair between sun.nio.cs and sun.nio.cs.ext does not compile.
+#   This is linux's list.  A charset generated into sun.nio.cs.ext reaches
+#   into the package-private Decoder and Encoder of the one it derives from,
+#   so a derived charset has to sit wherever its base does: EUC_JP_LINUX with
+#   EUC_JP, Big5_Solaris with Big5, and so on.  Leaving them out put five of
+#   them in ext with their bases in java.base, and javac said so.
 #
 Big5
+Big5_Solaris
 Big5_HKSCS
 EUC_CN
 EUC_KR
 EUC_JP
 EUC_JP_LINUX
+EUC_JP_Open
 EUC_TW
 GBK
 ISO_8859_11
@@ -18,9 +22,12 @@ ISO_8859_3
 ISO_8859_6
 ISO_8859_8
 Johab
+PCK
 TIS_620
 JIS_X_0201
 JIS_X_0208
 JIS_X_0212
+JIS_X_0208_Solaris
+JIS_X_0212_Solaris
 MS932
-SJIS
+SJIS       # SJIS must go together with MS932 to support sun.nio.cs.map

@@ -707,8 +707,8 @@ class SWPointer {
         _scale == q._scale   &&
         _invar == q._invar   &&
         _negate_invar == q._negate_invar) {
-      jlong difference = abs(java_subtract((jlong)_offset, (jlong)q._offset));
-      jlong max_diff = (jlong)1 << 31;
+      julong difference = g_uabs(java_subtract((jlong)_offset, (jlong)q._offset));
+      julong max_diff = (julong)1 << 31;
       if (difference >= max_diff) {
         return NotComparable;
       }

@@ -3986,7 +3986,7 @@ bool SWPointer::is_safe_to_use_as_simple_form(Node* base, Node* adr) const {
     BasicType array_element_bt = ary_ptr_t->elem()->array_element_basic_type();
     if (is_java_primitive(array_element_bt)) {
       int array_element_size_in_bytes = type2aelembytes(array_element_bt);
-      if (abs(long_scale) % array_element_size_in_bytes == 0) {
+      if (g_uabs(long_scale) % (julong)array_element_size_in_bytes == 0) {
         return true;
       }
     }

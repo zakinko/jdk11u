@@ -55,6 +55,9 @@
 #endif // SOLARIS
 
 #include <math.h>
+#ifdef __NetBSD__
+#include <cmath>
+#endif
 #include <time.h>
 #include <fcntl.h>
 #include <dlfcn.h>
@@ -214,6 +217,13 @@ inline int g_isnan(float  f) { return isnand(f); }
 inline int g_isnan(double f) { return isnand(f); }
 #elif defined(__APPLE__)
 inline int g_isnan(double f) { return isnan(f); }
+#elif defined(__NetBSD__)
+// NetBSD's libstdc++ <cmath> takes isnan and isfinite out of the global
+// namespace rather than leaving <math.h>'s macros beside its own overloads,
+// and something in the include graph has reached <cmath> by here.  Say which
+// ones are meant.
+inline int g_isnan(float  f) { return std::isnan(f); }
+inline int g_isnan(double f) { return std::isnan(f); }
 #elif defined(LINUX) || defined(_ALLBSD_SOURCE)
 inline int g_isnan(float  f) { return isnan(f); }
 inline int g_isnan(double f) { return isnan(f); }
@@ -229,8 +239,13 @@ inline int g_isnan(double f) { return isnan(f); }
 
 // Checking for finiteness
 
+#ifdef __NetBSD__
+inline int g_isfinite(jfloat  f)                 { return std::isfinite(f); }
+inline int g_isfinite(jdouble f)                 { return std::isfinite(f); }
+#else
 inline int g_isfinite(jfloat  f)                 { return isfinite(f); }
 inline int g_isfinite(jdouble f)                 { return isfinite(f); }
+#endif
 
 
 // Wide characters
