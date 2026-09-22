@@ -1277,10 +1277,10 @@ static int local_dladdr(const void* addr, Dl_info* info) {
   // the symbol address + symbol size. Since the jvm wants more
   // accurate symbol resolution, only return symbols that are
   // an exact match so that Decoder::decode can be called as a fallback.
-  if (info->dli_saddr != nullptr && info->dli_sname != nullptr &&
+  if (info->dli_saddr != NULL && info->dli_sname != NULL &&
       addr != info->dli_saddr) {
-    info->dli_saddr = nullptr;
-    info->dli_sname = nullptr;
+    info->dli_saddr = NULL;
+    info->dli_sname = NULL;
   }
   return ret;
 #endif
@@ -2401,7 +2401,7 @@ static char* anon_mmap(char* requested_addr, size_t bytes, bool exec) {
 #if defined(__FreeBSD__) && defined(MAP_EXCL)
   // On FreeBSD we can use MAP_FIXED with MAP_EXCL to have mmap fail if any part of the
   // requested region is already mapped.
-  if (requested_addr != nullptr) {
+  if (requested_addr != NULL) {
     flags |= MAP_FIXED | MAP_EXCL;
   }
 #endif
