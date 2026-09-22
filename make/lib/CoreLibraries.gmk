@@ -163,6 +163,7 @@ TARGETS += $(BUILD_LIBZIP)
 
 ##########################################################################################
 
+# The BSDs have no libdl; dlopen and friends are in libc there.
 $(eval $(call SetupJdkLibrary, BUILD_LIBJIMAGE, \
     NAME := jimage, \
     TOOLCHAIN := TOOLCHAIN_LINK_CXX, \
@@ -172,7 +173,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJIMAGE, \
     CFLAGS_unix := -UDEBUG, \
     LDFLAGS := $(LDFLAGS_JDKLIB) $(LDFLAGS_CXX_JDK) \
         $(call SET_SHARED_LIBRARY_ORIGIN), \
-    # The BSDs have no libdl; dlopen and friends are in libc there.
     LIBS_unix := -ljvm $(LIBCXX), \
     LIBS_linux := $(LIBDL), \
     LIBS_solaris := $(LIBDL), \
