@@ -50,7 +50,7 @@
 #endif
 
 #if defined(__OpenBSD__)
-// SB_MAX, the cap this file applies to SO_RCVBUF and SO_SNDBUF, lives here.
+/* SB_MAX, the cap this file applies to SO_RCVBUF and SO_SNDBUF, lives here. */
 #include <sys/socketvar.h>
 #endif
 

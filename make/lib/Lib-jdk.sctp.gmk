@@ -27,9 +27,11 @@ include LibCommon.gmk
 
 ################################################################################
 
+# No BSD other than FreeBSD has SCTP at all, and the FreeBSD side of this
+# library is not written here yet, so leave it out for the whole bsd target.
 ifeq ($(call isTargetOsType, unix), true)
 
-  ifeq ($(call isTargetOs, macosx aix), false)
+  ifeq ($(call isTargetOs, macosx aix bsd), false)
     $(eval $(call SetupJdkLibrary, BUILD_LIBSCTP, \
         NAME := sctp, \
         OPTIMIZATION := LOW, \

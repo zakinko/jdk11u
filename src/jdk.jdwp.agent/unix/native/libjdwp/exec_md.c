@@ -39,14 +39,14 @@
 #endif
 
 static char *skipWhitespace(char *p) {
-    while ((*p != '\0') && isspace(*p)) {
+    while ((*p != '\0') && isspace((unsigned char)*p)) {
         p++;
     }
     return p;
 }
 
 static char *skipNonWhitespace(char *p) {
-    while ((*p != '\0') && !isspace(*p)) {
+    while ((*p != '\0') && !isspace((unsigned char)*p)) {
         p++;
     }
     return p;

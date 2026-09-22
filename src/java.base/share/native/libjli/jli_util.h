@@ -118,7 +118,7 @@ JLI_CmdToArgs(char *cmdline);
 #define JLI_Lseek                       lseek
 #endif
 #if defined(_ALLBSD_SOURCE) && !defined(MACOSX)
-// The BSDs have no 64-bit variants: off_t is 64 bits to begin with.
+/* The BSDs have no 64-bit variants: off_t is 64 bits to begin with. */
 #define JLI_Lseek                       lseek
 #endif
 #endif /* _WIN32 */

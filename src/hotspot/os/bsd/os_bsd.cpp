@@ -2312,11 +2312,14 @@ bool os::remove_stack_guard_pages(char* addr, size_t size) {
 // 'requested_addr' is only treated as a hint, the return value may or
 // may not start from the requested address. Unlike Bsd mmap(), this
 // function returns NULL to indicate failure.
-static char* anon_mmap(char* requested_addr, size_t bytes, bool fixed, bool executable = false) {
+// 'extra_flags' is for the BSDs that have a flag of their own for "this
+// address or nothing", which is not the same thing as MAP_FIXED.
+static char* anon_mmap(char* requested_addr, size_t bytes, bool fixed,
+                       bool executable = false, int extra_flags = 0) {
   char * addr;
   int flags;
 
-  flags = MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS;
+  flags = MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS | extra_flags;
 #ifdef __APPLE__
   if (executable) {
     guarantee(!fixed, "MAP_JIT (for execute) is incompatible with MAP_FIXED");
@@ -2401,9 +2404,9 @@ static bool bsd_mprotect(char* addr, size_t size, int prot) {
   }
 #ifdef __OpenBSD__
   if (openbsd_kernel_guards_this_stack(bottom, size, errno)) {
-    log_debug(os, map)("mprotect refused on the primordial stack [" PTR_FORMAT
-                       " - " PTR_FORMAT "); leaving it to the kernel",
-                       p2i(bottom), p2i(bottom + size));
+    log_debug(os)("mprotect refused on the primordial stack [" PTR_FORMAT
+                  " - " PTR_FORMAT "); leaving it to the kernel",
+                  p2i(bottom), p2i(bottom + size));
     return true;
   }
 #endif
@@ -2584,7 +2587,7 @@ char* os::pd_attempt_reserve_memory_at(size_t bytes, char* requested_addr) {
   #else
     const int nonclobbering = MAP_TRYFIXED;
   #endif
-  char* addr = anon_mmap(requested_addr, bytes, exec, nonclobbering);
+  char* addr = anon_mmap(requested_addr, bytes, false, false, nonclobbering);
   return addr == requested_addr ? addr : NULL;
 #else
   // Repeatedly allocate blocks until the block is allocated at the

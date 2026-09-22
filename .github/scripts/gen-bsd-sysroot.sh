@@ -28,13 +28,24 @@
 # base system, the compiler support files and, where the X11 headers are
 # packaged apart from the rest, those too.
 #
-# Usage: gen-bsd-sysroot.sh <netbsd|freebsd|openbsd|dragonfly> <directory>
+# Usage: gen-bsd-sysroot.sh <netbsd|freebsd|openbsd|dragonfly> <directory> [arch]
+#
+# arch is spelled the way the JDK spells it -- x86_64, aarch64, powerpc64,
+# i386, sparc64 -- and each case below translates that into whatever the
+# operating system calls the same machine on its own mirror.  They disagree
+# with each other and, in OpenBSD's case, with themselves.
 
 set -eu
 
 os="$1"
 sysroot="$2"
+arch="${3:-x86_64}"
 mkdir -p "$sysroot"
+
+unsupported() {
+  echo "gen-bsd-sysroot.sh: $os has no $arch sysroot here" >&2
+  exit 1
+}
 
 # --max-time so that a mirror that accepts the connection and then stops
 # sending fails the job rather than sitting there until the six hour
@@ -67,16 +78,33 @@ case "$os" in
     # os_posix.cpp, where PTHREAD_STACK_MIN is undeclared until 10 -- and it
     # is the version vmactions offers, so it is what gets tested.
     netbsd_release=10.1
-    base=https://cdn.netbsd.org/pub/NetBSD/NetBSD-$netbsd_release/amd64/binary/sets
+    # NetBSD names a port after the board family where the CPU is not the
+    # whole story, so aarch64 lives under evbarm-aarch64.  The sets are xz
+    # everywhere except i386, which 10.1 still ships gzipped.
+    case "$arch" in
+      x86_64)  port=amd64 ;          ext=tar.xz ;;
+      aarch64) port=evbarm-aarch64 ; ext=tar.xz ;;
+      sparc64) port=sparc64 ;        ext=tar.xz ;;
+      i386)    port=i386 ;           ext=tgz ;;
+      *) unsupported ;;
+    esac
+    base=https://cdn.netbsd.org/pub/NetBSD/NetBSD-$netbsd_release/$port/binary/sets
     for set in base comp; do
-      fetch "$set.tar.xz" "$base/$set.tar.xz"
-      extract "$set.tar.xz"
+      fetch "$set.$ext" "$base/$set.$ext"
+      extract "$set.$ext"
     done
     ;;
 
   freebsd)
     # FreeBSD puts the whole base system in one base.txz.
-    base=https://download.freebsd.org/releases/amd64/15.1-RELEASE
+    # amd64 is the one release directory that is not <target>/<target_arch>.
+    case "$arch" in
+      x86_64)    relpath=amd64 ;;
+      aarch64)   relpath=arm64/aarch64 ;;
+      powerpc64) relpath=powerpc/powerpc64 ;;
+      *) unsupported ;;
+    esac
+    base=https://download.freebsd.org/releases/$relpath/15.1-RELEASE
     fetch base.txz "$base/base.txz"
     extract base.txz
     ;;
@@ -84,7 +112,15 @@ case "$os" in
   openbsd)
     # OpenBSD numbers its sets after the release: base79.tgz for 7.9, with
     # comp79 carrying the headers.
-    base=https://cdn.openbsd.org/pub/OpenBSD/7.9/amd64
+    # The same mirror spells this machine two ways: the release sets are
+    # under arm64/ and the packages under aarch64/.
+    case "$arch" in
+      x86_64)  setdir=amd64 ;   pkgdir=amd64 ;;
+      aarch64) setdir=arm64 ;   pkgdir=aarch64 ;;
+      sparc64) setdir=sparc64 ; pkgdir=sparc64 ;;
+      *) unsupported ;;
+    esac
+    base=https://cdn.openbsd.org/pub/OpenBSD/7.9/$setdir
     for set in base79 comp79; do
       fetch "$set.tgz" "$base/$set.tgz"
       extract "$set.tgz"
@@ -95,7 +131,7 @@ case "$os" in
     # A package's paths are relative to /usr/local, so it needs its own
     # destination rather than the sysroot root.
     fetch libiconv.tgz \
-        https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/amd64/libiconv-1.19.tgz
+        https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/$pkgdir/libiconv-1.19.tgz
     sudo mkdir -p "$sysroot/usr/local"
     echo "extracting libiconv.tgz into usr/local"
     sudo tar xf libiconv.tgz -C "$sysroot/usr/local"
@@ -106,6 +142,8 @@ case "$os" in
     # disk image and nothing else.  The ISO is cd9660 and libarchive reads
     # that directly, so the headers and libraries come straight out of it
     # without a loop mount.
+    # DragonFly is x86_64 only.
+    [ "$arch" = x86_64 ] || unsupported
     base=https://mirror-master.dragonflybsd.org/iso-images
     fetch dfly.iso.bz2 "$base/dfly-x86_64-6.4.2_REL.iso.bz2"
     bunzip2 dfly.iso.bz2

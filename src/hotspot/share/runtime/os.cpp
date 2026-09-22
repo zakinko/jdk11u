@@ -919,7 +919,7 @@ void os::print_hex_dump(outputStream* st, address start, address end, int unitsi
         case 1: st->print("%02x", *(u1*)p); break;
         case 2: st->print("%04x", *(u2*)p); break;
         case 4: st->print("%08x", *(u4*)p); break;
-        case 8: st->print("%016" FORMAT64_MODIFIER "x", *(u8*)p); break;
+        case 8: st->print("%016" PRIx64, *(u8*)p); break;
       }
     } else {
       st->print("%*.*s", 2*unitsize, 2*unitsize, "????????????????");

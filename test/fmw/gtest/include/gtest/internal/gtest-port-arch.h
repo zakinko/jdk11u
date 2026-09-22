@@ -70,6 +70,8 @@
 # if TARGET_OS_IPHONE
 #  define GTEST_OS_IOS 1
 # endif
+#elif defined __DragonFly__
+# define GTEST_OS_DRAGONFLY 1
 #elif defined __FreeBSD__
 # define GTEST_OS_FREEBSD 1
 #elif defined __Fuchsia__
