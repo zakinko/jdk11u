@@ -505,7 +505,7 @@ static jboolean expand(JLI_List args, const char *str, const char *var_name) {
     // This is retained until the process terminates as it is saved as the args
     p = JLI_MemAlloc(JLI_StrLen(str) + 1);
     while (*str != '\0') {
-        while (*str != '\0' && isspace(*str)) {
+        while (*str != '\0' && isspace((unsigned char)*str)) {
             str++;
         }
 
@@ -515,7 +515,7 @@ static jboolean expand(JLI_List args, const char *str, const char *var_name) {
         }
 
         arg = p;
-        while (*str != '\0' && !isspace(*str)) {
+        while (*str != '\0' && !isspace((unsigned char)*str)) {
             if (inEnvVar && (*str == '"' || *str == '\'')) {
                 quote = *str++;
                 while (*str != quote && *str != '\0') {
@@ -581,7 +581,7 @@ static jboolean expand(JLI_List args, const char *str, const char *var_name) {
             exit(1);
         }
 
-        assert (*str == '\0' || isspace(*str));
+        assert (*str == '\0' || isspace((unsigned char)*str));
     }
 
     return JNI_TRUE;

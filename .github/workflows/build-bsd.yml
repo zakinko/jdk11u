@@ -123,6 +123,12 @@ jobs:
           --with-conf-name=${{ matrix.conf-name }}
           --with-version-opt=${GITHUB_ACTOR}-${GITHUB_SHA}
           --with-boot-jdk=${{ steps.bootjdk.outputs.path }}
+          # 11 builds its own buildjdk for a cross build and copies the JNI
+          # headers for it out of the target build, so a target that is not
+          # linux leaves the linux-only ones -- EPoll, CgroupMetrics,
+          # LinuxWatchService -- missing while their sources still compile.
+          # The boot JDK runs jlink and jmod perfectly well.
+          --with-build-jdk=${{ steps.bootjdk.outputs.path }}
           --openjdk-target=${{ matrix.target-triple }}
           --with-sysroot=$PWD/sysroot
           --with-toolchain-type=clang

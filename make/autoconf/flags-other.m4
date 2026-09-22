@@ -105,6 +105,12 @@ AC_DEFUN([FLAGS_SETUP_RCFLAGS],
 # platform independent
 AC_DEFUN([FLAGS_SETUP_ASFLAGS],
 [
+  if test "x$OPENJDK_TARGET_OS" = xbsd; then
+    # bsd_x86_64.s is shared with macOS and asks the preprocessor which symbol
+    # prefix and .type directive to use, so it has to reach one.
+    JVM_BASIC_ASFLAGS="-x assembler-with-cpp"
+  fi
+
   if test "x$OPENJDK_TARGET_OS" = xmacosx; then
     JVM_BASIC_ASFLAGS="-x assembler-with-cpp -mno-omit-leaf-frame-pointer -mstack-alignment=16"
 

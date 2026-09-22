@@ -1248,6 +1248,17 @@ int os::current_process_id() {
 }
 
 // DLL functions
+static int local_dladdr(const void* addr, Dl_info* info) {
+#ifdef __APPLE__
+  if (addr == (void*)-1) {
+    // dladdr() in macOS12/Monterey returns success for -1, but that addr
+    // value should not be allowed to work to avoid confusion.
+    return 0;
+  }
+#endif
+  return dladdr(addr, info);
+}
+
 
 const char* os::dll_file_extension() { return JNI_LIB_SUFFIX; }
 
@@ -1431,7 +1442,7 @@ void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
 
   Elf32_Ehdr elf_head;
 
-  const char* const error_report = ::dlerror();
+  const char* error_report = ::dlerror();
   if (error_report == NULL) {
     error_report = "dlerror returned no error description";
   }
@@ -2635,6 +2646,7 @@ char* os::pd_attempt_reserve_memory_at(size_t bytes, char* requested_addr) {
   } else {
     return NULL;
   }
+#endif
 }
 
 size_t os::read(int fd, void *buf, unsigned int nBytes) {
@@ -2851,6 +2863,24 @@ static void suspend_save_context(OSThread *osthread, siginfo_t* siginfo, ucontex
 //
 // Currently only ever called on the VMThread or JavaThread
 //
+#ifndef __APPLE__
+// PosixSemaphore::timedwait takes an absolute time here; macOS's OSXSemaphore
+// takes the interval directly.  os_linux.cpp has the same helper for the same
+// reason.
+static struct timespec create_semaphore_timespec(unsigned int sec, int nsec) {
+  struct timespec ts;
+  // Semaphores are always associated with CLOCK_REALTIME
+  ::clock_gettime(CLOCK_REALTIME, &ts);
+  ts.tv_sec += sec;
+  ts.tv_nsec += nsec;
+  if (ts.tv_nsec >= NANOSECS_PER_SEC) {
+    ts.tv_nsec -= NANOSECS_PER_SEC;
+    ++ts.tv_sec;
+  }
+  return ts;
+}
+#endif
+
 #ifdef __APPLE__
 static OSXSemaphore sr_semaphore;
 #else
@@ -2997,7 +3027,7 @@ static bool do_suspend(OSThread* osthread) {
 
   // managed to send the signal and switch to SUSPEND_REQUEST, now wait for SUSPENDED
   while (true) {
-    if (sr_semaphore.timedwait(0, 2 * NANOSECS_PER_MILLISEC)) {
+    if (sr_semaphore.timedwait(create_semaphore_timespec(0, 2 * NANOSECS_PER_MILLISEC))) {
       break;
     } else {
       // timeout
@@ -3031,7 +3061,7 @@ static void do_resume(OSThread* osthread) {
 
   while (true) {
     if (sr_notify(osthread) == 0) {
-      if (sr_semaphore.timedwait(0, 2 * NANOSECS_PER_MILLISEC)) {
+      if (sr_semaphore.timedwait(create_semaphore_timespec(0, 2 * NANOSECS_PER_MILLISEC))) {
         if (osthread->sr.is_running()) {
           return;
         }
@@ -4217,7 +4247,7 @@ static int get_default_core_path(char* buffer, size_t bufferSize) {
   if (!have_pattern) {
     // OpenBSD has no such knob, and this is what every one of them falls
     // back on anyway.
-    os::snprintf_checked(pattern, sizeof(pattern), "%%n.core");
+    jio_snprintf(pattern, sizeof(pattern), "%%n.core");
   }
 
   // Only the escapes the defaults use are expanded.  Anything else is left
@@ -4232,13 +4262,13 @@ static int get_default_core_path(char* buffer, size_t bufferSize) {
     p++;
     switch (*p) {
       case 'n': case 'N':
-        out += os::snprintf(expanded + out, sizeof(expanded) - out, "%s", ::getprogname());
+        out += jio_snprintf(expanded + out, sizeof(expanded) - out, "%s", ::getprogname());
         break;
       case 'p': case 'P':
-        out += os::snprintf(expanded + out, sizeof(expanded) - out, "%d", os::current_process_id());
+        out += jio_snprintf(expanded + out, sizeof(expanded) - out, "%d", os::current_process_id());
         break;
       case 'u': case 'U':
-        out += os::snprintf(expanded + out, sizeof(expanded) - out, "%d", (int)::getuid());
+        out += jio_snprintf(expanded + out, sizeof(expanded) - out, "%d", (int)::getuid());
         break;
       default:
         expanded[out++] = '%';
@@ -4255,13 +4285,13 @@ static int get_default_core_path(char* buffer, size_t bufferSize) {
   expanded[out] = '\0';
 
   if (expanded[0] == '/') {
-    return os::snprintf(buffer, bufferSize, "%s", expanded);
+    return jio_snprintf(buffer, bufferSize, "%s", expanded);
   }
   char cwd[PATH_MAX];
   if (::getcwd(cwd, sizeof(cwd)) == NULL) {
-    return os::snprintf(buffer, bufferSize, "%s", expanded);
+    return jio_snprintf(buffer, bufferSize, "%s", expanded);
   }
-  return os::snprintf(buffer, bufferSize, "%s/%s", cwd, expanded);
+  return jio_snprintf(buffer, bufferSize, "%s/%s", cwd, expanded);
 }
 
 // Get the kern.corefile setting, or otherwise the default path to the core file

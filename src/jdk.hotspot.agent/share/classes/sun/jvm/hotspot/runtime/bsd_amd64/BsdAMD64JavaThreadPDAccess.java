@@ -144,7 +144,8 @@ public class BsdAMD64JavaThreadPDAccess implements JavaThreadPDAccess {
     // The remote side builds its thread wrappers per CPU rather than per OS,
     // so the one-argument form serves there.
     JVMDebugger debugger = VM.getVM().getDebugger();
-    if (debugger instanceof BsdDebuggerLocal local) {
+    if (debugger instanceof BsdDebuggerLocal) {
+      BsdDebuggerLocal local = (BsdDebuggerLocal) debugger;
       return local.getThreadForIdentifierAddress(threadIdAddr, uniqueThreadIdAddr);
     }
     return debugger.getThreadForIdentifierAddress(threadIdAddr);

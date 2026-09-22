@@ -172,7 +172,12 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJIMAGE, \
     CFLAGS_unix := -UDEBUG, \
     LDFLAGS := $(LDFLAGS_JDKLIB) $(LDFLAGS_CXX_JDK) \
         $(call SET_SHARED_LIBRARY_ORIGIN), \
-    LIBS_unix := -ljvm -ldl $(LIBCXX), \
+    # The BSDs have no libdl; dlopen and friends are in libc there.
+    LIBS_unix := -ljvm $(LIBCXX), \
+    LIBS_linux := $(LIBDL), \
+    LIBS_solaris := $(LIBDL), \
+    LIBS_macosx := $(LIBDL), \
+    LIBS_aix := $(LIBDL), \
     LIBS_macosx := -lc++, \
     LIBS_windows := jvm.lib, \
 ))
