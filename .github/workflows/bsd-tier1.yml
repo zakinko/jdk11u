@@ -10,7 +10,7 @@ name: 'BSD tier1'
 on:
   push:
     branches:
-      - tier1-bsd-25
+      - tier1-bsd-11
   workflow_dispatch:
     inputs:
       release:
