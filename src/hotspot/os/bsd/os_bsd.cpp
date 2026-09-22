@@ -1645,25 +1645,25 @@ struct loaded_modules_info_param {
 // The object's extent is the span of its PT_LOAD segments, as os_linux.cpp
 // takes it; dl_phdr_info carries nothing closer to a size.
 static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *data) {
-  if ((info->dlpi_name == nullptr) || (*info->dlpi_name == '\0')) {
+  if ((info->dlpi_name == NULL) || (*info->dlpi_name == '\0')) {
     return 0;
   }
 
   struct loaded_modules_info_param *callback_param = reinterpret_cast<struct loaded_modules_info_param *>(data);
-  address base = nullptr;
-  address top = nullptr;
+  address base = NULL;
+  address top = NULL;
   for (int idx = 0; idx < info->dlpi_phnum; idx++) {
     const Elf_Phdr *phdr = info->dlpi_phdr + idx;
     if (phdr->p_type == PT_LOAD) {
       address raw_phdr_base = reinterpret_cast<address>(info->dlpi_addr + phdr->p_vaddr);
 
       address phdr_base = align_down(raw_phdr_base, phdr->p_align);
-      if ((base == nullptr) || (base > phdr_base)) {
+      if ((base == NULL) || (base > phdr_base)) {
         base = phdr_base;
       }
 
       address phdr_top = align_up(raw_phdr_base + phdr->p_memsz, phdr->p_align);
-      if ((top == nullptr) || (top < phdr_top)) {
+      if ((top == NULL) || (top < phdr_top)) {
         top = phdr_top;
       }
     }
@@ -1699,7 +1699,7 @@ int os::get_loaded_modules_info(os::LoadedModulesCallbackFunc callback, void *pa
 
   while (map != NULL) {
     // Value for top_address is returned as 0 since we don't have any information about module size
-    if (callback(map->l_name, (address)map->l_addr, nullptr, param)) {
+    if (callback(map->l_name, (address)map->l_addr, NULL, param)) {
       dlclose(handle);
       return 1;
     }
@@ -3438,6 +3438,16 @@ typedef int (*os_sigaction_t)(int, const struct sigaction *, struct sigaction *)
 
 static os_sigaction_t os_sigaction = NULL;
 
+// NetBSD's <signal.h> renames sigaction to __sigaction_siginfo, and the
+// symbol still called "sigaction" in libc is the old ABI's entry point: it
+// answers with SIGSYS.  Looking the name up as a string has to ask for the
+// one the header would have bound to.
+#ifdef __NetBSD__
+#define SIGACTION_SYMBOL "__sigaction_siginfo"
+#else
+#define SIGACTION_SYMBOL "sigaction"
+#endif
+
 void os::Bsd::check_signal_handler(int sig) {
   char buf[O_BUFLEN];
   address jvmHandler = NULL;
@@ -3446,7 +3456,7 @@ void os::Bsd::check_signal_handler(int sig) {
   struct sigaction act;
   if (os_sigaction == NULL) {
     // only trust the default sigaction, in case it has been interposed
-    os_sigaction = (os_sigaction_t)dlsym(RTLD_DEFAULT, "sigaction");
+    os_sigaction = (os_sigaction_t)dlsym(RTLD_DEFAULT, SIGACTION_SYMBOL);
     if (os_sigaction == NULL) return;
   }
 

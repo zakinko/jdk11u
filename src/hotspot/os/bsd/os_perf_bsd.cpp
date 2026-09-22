@@ -124,8 +124,8 @@ CPUPerformanceInterface::CPUPerformance::CPUPerformance() {
   _used_ticks = 0;
   _total_ticks = 0;
   _active_processor_count = 0;
-  _cpu_used_ticks = nullptr;
-  _cpu_total_ticks = nullptr;
+  _cpu_used_ticks = NULL;
+  _cpu_total_ticks = NULL;
   _cpu_tick_count = 0;
 #endif
 }
@@ -153,7 +153,7 @@ int CPUPerformanceInterface::CPUPerformance::cpu_load(int which_logical_cpu, dou
   size_t len = sizeof(uint64_t) * CPUSTATES * ncpu;
   uint64_t* cp_time = NEW_RESOURCE_ARRAY(uint64_t, CPUSTATES * ncpu);
   int mib[2] = { CTL_KERN, KERN_CP_TIME };
-  if (sysctl(mib, 2, cp_time, &len, nullptr, 0) != 0) {
+  if (sysctl(mib, 2, cp_time, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
   if (len != sizeof(uint64_t) * CPUSTATES * ncpu) {
@@ -165,7 +165,7 @@ int CPUPerformanceInterface::CPUPerformance::cpu_load(int which_logical_cpu, dou
   uint64_t used  = c[CP_USER] + c[CP_NICE] + c[CP_SYS] + c[CP_INTR];
   uint64_t total = used + c[CP_IDLE];
 
-  if (_cpu_used_ticks == nullptr) {
+  if (_cpu_used_ticks == NULL) {
     _cpu_used_ticks  = NEW_C_HEAP_ARRAY(uint64_t, ncpu, mtInternal);
     _cpu_total_ticks = NEW_C_HEAP_ARRAY(uint64_t, ncpu, mtInternal);
     memset(_cpu_used_ticks, 0, sizeof(uint64_t) * ncpu);
@@ -233,7 +233,7 @@ int CPUPerformanceInterface::CPUPerformance::cpu_load_total_process(double* cpu_
   uint64_t cp_time[CPUSTATES];
   size_t len = sizeof(cp_time);
   int mib[2] = { CTL_KERN, KERN_CP_TIME };
-  if (sysctl(mib, 2, cp_time, &len, nullptr, 0) != 0) {
+  if (sysctl(mib, 2, cp_time, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
 
@@ -267,11 +267,11 @@ int CPUPerformanceInterface::CPUPerformance::cpu_load_total_process(double* cpu_
   size_t len = sizeof(cp_time);
 #ifdef __OpenBSD__
   int mib[2] = { CTL_KERN, KERN_CPTIME };
-  if (sysctl(mib, 2, cp_time, &len, nullptr, 0) != 0) {
+  if (sysctl(mib, 2, cp_time, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
 #else
-  if (sysctlbyname("kern.cp_time", cp_time, &len, nullptr, 0) != 0) {
+  if (sysctlbyname("kern.cp_time", cp_time, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
 #endif
@@ -418,7 +418,7 @@ int CPUPerformanceInterface::CPUPerformance::context_switch_rate(double* rate) {
 }
 
 CPUPerformanceInterface::CPUPerformanceInterface() {
-  _impl = nullptr;
+  _impl = NULL;
 }
 
 bool CPUPerformanceInterface::initialize() {
@@ -427,7 +427,7 @@ bool CPUPerformanceInterface::initialize() {
 }
 
 CPUPerformanceInterface::~CPUPerformanceInterface() {
-  if (_impl != nullptr) {
+  if (_impl != NULL) {
     delete _impl;
   }
 }
@@ -470,17 +470,17 @@ bool SystemProcessInterface::SystemProcesses::initialize() {
 SystemProcessInterface::SystemProcesses::~SystemProcesses() {
 }
 int SystemProcessInterface::SystemProcesses::system_processes(SystemProcess** system_processes, int* no_of_sys_processes) const {
-  assert(system_processes != nullptr, "system_processes pointer is null!");
-  assert(no_of_sys_processes != nullptr, "system_processes counter pointer is null!");
+  assert(system_processes != NULL, "system_processes pointer is null!");
+  assert(no_of_sys_processes != NULL, "system_processes counter pointer is null!");
 #ifdef __APPLE__
-  pid_t* pids = nullptr;
+  pid_t* pids = NULL;
   int pid_count = 0;
   ResourceMark rm;
 
   int try_count = 0;
-  while (pids == nullptr) {
+  while (pids == NULL) {
     // Find out buffer size
-    size_t pids_bytes = proc_listpids(PROC_ALL_PIDS, 0, nullptr, 0);
+    size_t pids_bytes = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
     if (pids_bytes <= 0) {
       return OS_ERR;
     }
@@ -492,7 +492,7 @@ int SystemProcessInterface::SystemProcesses::system_processes(SystemProcess** sy
     if (pids_bytes <= 0) {
        // couldn't fit buffer, retry.
       FREE_RESOURCE_ARRAY(pid_t, pids, pid_count);
-      pids = nullptr;
+      pids = NULL;
       try_count++;
       if (try_count > 3) {
       return OS_ERR;
@@ -503,7 +503,7 @@ int SystemProcessInterface::SystemProcesses::system_processes(SystemProcess** sy
   }
 
   int process_count = 0;
-  SystemProcess* next = nullptr;
+  SystemProcess* next = NULL;
   for (int i = 0; i < pid_count; i++) {
     pid_t pid = pids[i];
     if (pid != 0) {
@@ -537,20 +537,20 @@ int SystemProcessInterface::SystemProcesses::system_processes(SystemProcess** sy
   int mib[6] = { CTL_KERN, KERN_PROC2, KERN_PROC_ALL, 0,
                  (int)sizeof(struct kinfo_proc2), 0 };
   size_t len = 0;
-  if (sysctl(mib, 6, nullptr, &len, nullptr, 0) != 0 || len == 0) {
+  if (sysctl(mib, 6, NULL, &len, NULL, 0) != 0 || len == 0) {
     return OS_ERR;
   }
 
   int count = (int)(len / sizeof(struct kinfo_proc2));
   mib[5] = count;
   struct kinfo_proc2* procs = NEW_RESOURCE_ARRAY(struct kinfo_proc2, count);
-  if (sysctl(mib, 6, procs, &len, nullptr, 0) != 0) {
+  if (sysctl(mib, 6, procs, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
   count = (int)(len / sizeof(struct kinfo_proc2));
 
   int process_count = 0;
-  SystemProcess* next = nullptr;
+  SystemProcess* next = NULL;
   for (int i = 0; i < count; i++) {
     pid_t pid = procs[i].p_pid;
     if (pid == 0) {
@@ -559,7 +559,7 @@ int SystemProcessInterface::SystemProcesses::system_processes(SystemProcess** sy
     char buffer[MAXPATHLEN];
     size_t path_len = sizeof(buffer);
     int name[4] = { CTL_KERN, KERN_PROC_ARGS, (int)pid, KERN_PROC_PATHNAME };
-    if (sysctl(name, 4, buffer, &path_len, nullptr, 0) != 0 || path_len == 0) {
+    if (sysctl(name, 4, buffer, &path_len, NULL, 0) != 0 || path_len == 0) {
       // A process can go away between the listing and this call, and a
       // kernel thread has no path at all.  Report what can be named.
       continue;
@@ -587,7 +587,7 @@ int SystemProcessInterface::system_processes(SystemProcess** system_procs, int* 
 }
 
 SystemProcessInterface::SystemProcessInterface() {
-  _impl = nullptr;
+  _impl = NULL;
 }
 
 bool SystemProcessInterface::initialize() {
@@ -596,13 +596,13 @@ bool SystemProcessInterface::initialize() {
 }
 
 SystemProcessInterface::~SystemProcessInterface() {
-  if (_impl != nullptr) {
+  if (_impl != NULL) {
     delete _impl;
  }
 }
 
 CPUInformationInterface::CPUInformationInterface() {
-  _cpu_info = nullptr;
+  _cpu_info = NULL;
 }
 
 bool CPUInformationInterface::initialize() {
@@ -616,23 +616,23 @@ bool CPUInformationInterface::initialize() {
 }
 
 CPUInformationInterface::~CPUInformationInterface() {
-  if (_cpu_info != nullptr) {
-    if (_cpu_info->cpu_name() != nullptr) {
+  if (_cpu_info != NULL) {
+    if (_cpu_info->cpu_name() != NULL) {
       const char* cpu_name = _cpu_info->cpu_name();
       FREE_C_HEAP_ARRAY(char, cpu_name);
-      _cpu_info->set_cpu_name(nullptr);
+      _cpu_info->set_cpu_name(NULL);
     }
-    if (_cpu_info->cpu_description() != nullptr) {
+    if (_cpu_info->cpu_description() != NULL) {
       const char* cpu_desc = _cpu_info->cpu_description();
       FREE_C_HEAP_ARRAY(char, cpu_desc);
-      _cpu_info->set_cpu_description(nullptr);
+      _cpu_info->set_cpu_description(NULL);
     }
     delete _cpu_info;
   }
 }
 
 int CPUInformationInterface::cpu_information(CPUInformation& cpu_info) {
-  if (nullptr == _cpu_info) {
+  if (NULL == _cpu_info) {
     return OS_ERR;
   }
 
@@ -674,16 +674,16 @@ int NetworkPerformanceInterface::NetworkPerformance::network_utilization(Network
   const int ifinfo_type = RTM_IFINFO;
 #endif
   int mib[] = {CTL_NET, PF_ROUTE, /* protocol number */ 0, /* address family */ 0, iflist_op, /* NET_RT_FLAGS mask*/ 0};
-  if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), nullptr, &len, nullptr, 0) != 0) {
+  if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), NULL, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
   uint8_t* buf = NEW_RESOURCE_ARRAY(uint8_t, len);
-  if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), buf, &len, nullptr, 0) != 0) {
+  if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), buf, &len, NULL, 0) != 0) {
     return OS_ERR;
   }
 
   size_t index = 0;
-  NetworkInterface* ret = nullptr;
+  NetworkInterface* ret = NULL;
   while (index < len) {
     if_msghdr* msghdr = reinterpret_cast<if_msghdr*>(buf + index);
     index += msghdr->ifm_msglen;
@@ -723,11 +723,11 @@ int NetworkPerformanceInterface::NetworkPerformance::network_utilization(Network
 }
 
 NetworkPerformanceInterface::NetworkPerformanceInterface() {
-  _impl = nullptr;
+  _impl = NULL;
 }
 
 NetworkPerformanceInterface::~NetworkPerformanceInterface() {
-  if (_impl != nullptr) {
+  if (_impl != NULL) {
     delete _impl;
   }
 }

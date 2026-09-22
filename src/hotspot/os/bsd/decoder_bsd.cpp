@@ -55,14 +55,14 @@ bool ElfDecoder::demangle(const char* symbol, char *buf, int buflen) {
   //
   // where the last of those is thread_start.  The name a C function was
   // given is already the name to print, so leave it alone.
-  if (symbol == nullptr || symbol[0] != '_' || symbol[1] != 'Z') {
+  if (symbol == NULL || symbol[0] != '_' || symbol[1] != 'Z') {
     return false;
   }
 
   // Don't pass buf to __cxa_demangle. In case of the 'buf' is too small,
   // __cxa_demangle will call system "realloc" for additional memory, which
   // may use different malloc/realloc mechanism that allocates 'buf'.
-  if ((result = abi::__cxa_demangle(symbol, nullptr, nullptr, &status)) != nullptr) {
+  if ((result = abi::__cxa_demangle(symbol, NULL, NULL, &status)) != NULL) {
     jio_snprintf(buf, buflen, "%s", result);
     // call c library's free
     ::free(result);
