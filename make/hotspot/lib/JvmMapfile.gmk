@@ -67,7 +67,14 @@ endif
 # The BSDs other than macOS are ELF and use the same nm as linux; macosx is
 # handled separately below because Mach-O names carry a leading underscore.
 ifeq ($(call isTargetOs, linux bsd), true)
-  DUMP_SYMBOLS_CMD := $(NM) --defined-only *.o
+  # ^_ZTV below also matches the vtable of a class declared inside a function,
+  # which has internal linkage.  GNU ld quietly ignores a version script
+  # assignment to a local symbol; lld, which is what the BSDs link with,
+  # makes it an error.  Ask nm for external symbols only there.
+  ifeq ($(call isTargetOs, bsd), true)
+    NM_SCOPE_FLAG := -g
+  endif
+  DUMP_SYMBOLS_CMD := $(NM) $(NM_SCOPE_FLAG) --defined-only *.o
   ifneq ($(FILTER_SYMBOLS_PATTERN), )
     FILTER_SYMBOLS_PATTERN := $(FILTER_SYMBOLS_PATTERN)|
   endif
