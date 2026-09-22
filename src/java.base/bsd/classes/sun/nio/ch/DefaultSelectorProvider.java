@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,20 +25,13 @@
 
 package sun.nio.ch;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import java.nio.channels.spi.SelectorProvider;
 
 /**
  * Creates this platform's default SelectorProvider
  */
 
-@SuppressWarnings("removal")
 public class DefaultSelectorProvider {
-    private static final SelectorProviderImpl INSTANCE;
-    static {
-        PrivilegedAction<SelectorProviderImpl> pa = KQueueSelectorProvider::new;
-        INSTANCE = AccessController.doPrivileged(pa);
-    }
 
     /**
      * Prevent instantiation.
@@ -46,9 +39,9 @@ public class DefaultSelectorProvider {
     private DefaultSelectorProvider() { }
 
     /**
-     * Returns the default SelectorProvider implementation.
+     * Returns the default SelectorProvider.
      */
-    public static SelectorProviderImpl get() {
-        return INSTANCE;
+    public static SelectorProvider create() {
+        return new KQueueSelectorProvider();
     }
 }
