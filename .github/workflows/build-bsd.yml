@@ -130,7 +130,6 @@ jobs:
           --enable-headless-only
           --disable-dtrace
           --disable-precompiled-headers
-          --with-jmod-compress=zip-1
           --with-external-symbols-in-bundles=none
           CC=${{ matrix.target-triple }}-clang
           CXX=${{ matrix.target-triple }}-clang++
