@@ -30,6 +30,9 @@ on:
     branches-ignore:
       - master
       - pr/*
+      # bsd-tier1.yml is what these branches are for; the full matrix here
+      # only queues ahead of it.
+      - tier1-bsd-*
   workflow_dispatch:
     inputs:
       platforms:
