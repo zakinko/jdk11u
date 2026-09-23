@@ -629,7 +629,10 @@ void os::print_context(outputStream *st, const void *context) {
   st->print("  sp=" INTPTR_FORMAT, (intptr_t)uc->context_sp);
   st->cr();
   st->print(  "pc=" INTPTR_FORMAT,  (intptr_t)uc->context_pc);
+#ifdef __APPLE__
+  // Only Darwin's mcontext carries the saved processor state register.
   st->print(" cpsr=" INTPTR_FORMAT, (intptr_t)uc->context_cpsr);
+#endif
   st->cr();
 
   intptr_t *sp = (intptr_t *)os::Bsd::ucontext_get_sp(uc);
@@ -706,9 +709,14 @@ int os::extra_bang_size_in_bytes() {
   return 0;
 }
 
+#ifdef __APPLE__
+// pthread_jit_write_protect_np is Darwin's, and so is the declaration of
+// this in os.hpp.  The other BSDs issue the barriers through
+// ThreadWXEnable instead.
 void os::current_thread_enable_wx(WXMode mode) {
   pthread_jit_write_protect_np(mode == WXExec);
 }
+#endif
 
 extern "C" {
   int SpinPause() {
