@@ -70,11 +70,16 @@ ifeq ($(call isTargetOs, linux bsd), true)
   # ^_ZTV below also matches the vtable of a class declared inside a function,
   # which has internal linkage.  GNU ld quietly ignores a version script
   # assignment to a local symbol; lld, which is what the BSDs link with,
-  # makes it an error.  Ask nm for external symbols only there.
+  # makes it an error.  Take only the ones nm calls V, which is what an
+  # ordinary class vtable is: measured on a libjvm here, 3416 of them
+  # against 8 of the function-local kind.  Asking nm for -g instead drops
+  # both -- the vtables are built -fvisibility=hidden, so none of them are
+  # external -- and the serviceability agent reads them out of the dynamic
+  # table, so it then cannot tell one Metadata from another.
   ifeq ($(call isTargetOs, bsd), true)
-    NM_SCOPE_FLAG := -g
+    SYMBOL_SCOPE_TEST := && $$2 == "V"
   endif
-  DUMP_SYMBOLS_CMD := $(NM) $(NM_SCOPE_FLAG) --defined-only *.o
+  DUMP_SYMBOLS_CMD := $(NM) --defined-only *.o
   ifneq ($(FILTER_SYMBOLS_PATTERN), )
     FILTER_SYMBOLS_PATTERN := $(FILTER_SYMBOLS_PATTERN)|
   endif
@@ -82,7 +87,7 @@ ifeq ($(call isTargetOs, linux bsd), true)
   FILTER_SYMBOLS_PATTERN := $(FILTER_SYMBOLS_PATTERN)|^_ZN9Arguments17SharedArchivePathE$$
   FILTER_SYMBOLS_AWK_SCRIPT := \
       '{ \
-        if ($$3 ~ /$(FILTER_SYMBOLS_PATTERN)/) print $$3; \
+        if ($$3 ~ /$(FILTER_SYMBOLS_PATTERN)/ $(SYMBOL_SCOPE_TEST)) print $$3; \
       }'
 
 else ifeq ($(call isTargetOs, solaris), true)
