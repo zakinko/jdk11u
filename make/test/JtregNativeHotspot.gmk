@@ -861,6 +861,11 @@ ifeq ($(call isTargetOs, bsd), true)
     BUILD_HOTSPOT_JTREG_LIBRARIES_LIBS_libstepBreakPopReturn := -lpthread
     BUILD_HOTSPOT_JTREG_LIBRARIES_LIBS_libIndyRedefineClass := -lpthread
     BUILD_HOTSPOT_JTREG_LIBRARIES_LIBS_libredefineClasses := -lpthread
+    # NetBSD leaves the initial thread without a pthread descriptor when
+    # libpthread arrives through a dlopen, and this launcher reaches the
+    # VM that way, so pthread_attr_get_np(pthread_self()) faults inside
+    # JNI_CreateJavaVM.  Linking the library in from the start settles it.
+    BUILD_HOTSPOT_JTREG_EXECUTABLES_LIBS_exeFPRegs := -lpthread
 endif
 
 ifeq ($(call isTargetOs, linux), true)
