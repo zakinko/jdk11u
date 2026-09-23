@@ -320,7 +320,7 @@ Thread::Thread() {
     barrier_set->on_thread_create(this);
   }
 
-  MACOS_AARCH64_ONLY(DEBUG_ONLY(_wx_init = false));
+  BSD_AARCH64_ONLY(DEBUG_ONLY(_wx_init = false));
   _in_asgct = false;
 }
 
@@ -373,7 +373,7 @@ void Thread::call_run() {
   // At this point, Thread object should be fully initialized and
   // Thread::current() should be set.
 
-  MACOS_AARCH64_ONLY(this->init_wx());
+  BSD_AARCH64_ONLY(this->init_wx());
 
   register_thread_stack_with_NMT();
 
@@ -2547,7 +2547,7 @@ void JavaThread::check_safepoint_and_suspend_for_native_trans(JavaThread *thread
 // thread state is _thread_in_native_trans.
 void JavaThread::check_special_condition_for_native_trans(JavaThread *thread) {
   // Enable WXWrite: called directly from interpreter native wrapper.
-  MACOS_AARCH64_ONLY(ThreadWXEnable wx(WXWrite, thread));
+  BSD_AARCH64_ONLY(ThreadWXEnable wx(WXWrite, thread));
 
   check_safepoint_and_suspend_for_native_trans(thread);
 
@@ -3722,7 +3722,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize the os module
   os::init();
 
-  MACOS_AARCH64_ONLY(os::current_thread_enable_wx(WXWrite));
+  BSD_AARCH64_ONLY(os::current_thread_enable_wx(WXWrite));
 
   // Record VM creation timing statistics
   TraceVmCreationTime create_vm_timer;
@@ -3827,7 +3827,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   main_thread->record_stack_base_and_size();
   main_thread->register_thread_stack_with_NMT();
   main_thread->set_active_handles(JNIHandleBlock::allocate_block());
-  MACOS_AARCH64_ONLY(main_thread->init_wx());
+  BSD_AARCH64_ONLY(main_thread->init_wx());
 
   if (!main_thread->set_as_starting_thread()) {
     vm_shutdown_during_initialization(

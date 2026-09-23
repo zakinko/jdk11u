@@ -854,7 +854,10 @@ public:
   static const uint64_t branch_range = NOT_DEBUG(128 * M) DEBUG_ONLY(2 * M);
 
   static bool reachable_from_branch_at(address branch, address target) {
-    return g_uabs(target - branch) < branch_range;
+    // The difference of two addresses is ptrdiff_t, which is long.  Where
+    // int64_t is long long -- OpenBSD spells it that way -- that matches
+    // neither g_uabs(jlong) nor g_uabs(julong) exactly, so say which.
+    return g_uabs((jlong)(target - branch)) < branch_range;
   }
 
   // Unconditional branch (immediate)
