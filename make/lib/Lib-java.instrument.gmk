@@ -48,6 +48,8 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBINSTRUMENT, \
         $(LIBINSTRUMENT_LDFLAGS), \
     LDFLAGS_linux := $(call SET_SHARED_LIBRARY_ORIGIN,/jli) \
         -L$(call FindLibDirForModule, java.base)/jli, \
+    LDFLAGS_bsd := $(call SET_SHARED_LIBRARY_ORIGIN,/jli) \
+        -L$(call FindLibDirForModule, java.base)/jli, \
     LDFLAGS_solaris := $(call SET_SHARED_LIBRARY_ORIGIN,/jli) \
         -L$(call FindLibDirForModule, java.base)/jli, \
     LDFLAGS_macosx := $(call SET_SHARED_LIBRARY_ORIGIN,/jli) \
