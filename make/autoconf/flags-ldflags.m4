@@ -83,12 +83,17 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS_HELPER],
   elif test "x$TOOLCHAIN_TYPE" = xclang; then
     BASIC_LDFLAGS_JVM_ONLY="-mno-omit-leaf-frame-pointer -mstack-alignment=16 \
         -fPIC"
-    if test "x$OPENJDK_TARGET_OS" = xbsd; then
+    if test "x$OPENJDK_TARGET_OS_ENV" = xbsd.netbsd; then
       # The gcc arm above forbids undefined symbols, and the BSDs are built
       # with clang, so a library that names none of what it calls links
       # anyway and fails at dlopen instead.  That is how libprefs shipped
       # without libjava and libinstrument without libjli.  Ask the same of
       # the JDK's own libraries; the JVM is linked on its own terms.
+      #
+      # NetBSD alone can answer for every symbol at link time.  OpenBSD's
+      # driver puts no libc on a shared library's link line at all, and
+      # FreeBSD and DragonFly leave environ to crt1.o, so there the flag
+      # rejects the C library rather than a forgotten -l.
       BASIC_LDFLAGS_JDK_ONLY="$BASIC_LDFLAGS_JDK_ONLY -Wl,-z,defs"
     fi
 
