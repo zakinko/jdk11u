@@ -30,7 +30,10 @@
 #define SUPPORTS_NATIVE_CX8
 #endif
 
-#ifndef FFI_GO_CLOSURES
+// Darwin's libffi has no Go closures and its ffi.h expects to be told so.
+// Everyone else's ffitarget.h says 1, and saying 0 first is a redefinition,
+// which is an error under -Werror from libffi 3.4 on.
+#ifdef __APPLE__
 #define FFI_GO_CLOSURES 0
 #endif
 
