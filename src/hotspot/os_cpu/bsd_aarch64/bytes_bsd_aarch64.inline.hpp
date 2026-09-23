@@ -28,14 +28,24 @@
 
 #ifdef __APPLE__
 #include <libkern/OSByteOrder.h>
+#else
+#include <sys/endian.h>
 #endif
 
+// Each system spells its byte swaps its own way; OpenBSD is the one that
+// does not call them bswap.
 #if defined(__APPLE__)
 #  define bswap_16(x) OSSwapInt16(x)
 #  define bswap_32(x) OSSwapInt32(x)
 #  define bswap_64(x) OSSwapInt64(x)
+#elif defined(__OpenBSD__)
+#  define bswap_16(x) swap16(x)
+#  define bswap_32(x) swap32(x)
+#  define bswap_64(x) swap64(x)
 #else
-#  error "Unimplemented"
+#  define bswap_16(x) bswap16(x)
+#  define bswap_32(x) bswap32(x)
+#  define bswap_64(x) bswap64(x)
 #endif
 
 // Efficient swapping of data bytes from Java byte
