@@ -77,7 +77,19 @@ case "$os" in
     # flags-ldflags.m4 passes -- it produces the two segments NetBSD wants
     # and keeps the read-only relocations.  Measured on LLD 18.1.3 and GNU
     # ld 2.42.
-    linker=bfd
+    # GNU ld only knows the architecture it was built for, so take the
+    # one that matches the target rather than /usr/bin/ld.bfd, which is
+    # the host's and rejects an aarch64 crt0.o as "file in wrong format".
+    # Debian names the 32-bit x86 toolchain after i686, not after i386.
+    case "${triple%%-*}" in
+      i386) ld_arch=i686 ;;
+      *)    ld_arch=${triple%%-*} ;;
+    esac
+    ld_path=$(command -v "$ld_arch-linux-gnu-ld.bfd" || true)
+    if [ -z "$ld_path" ]; then
+      echo "$0: no GNU ld for $ld_arch; install binutils-$ld_arch-linux-gnu" >&2
+      exit 1
+    fi
     ;;
   dragonfly)
     cxxdir=$(ls -d "$sysroot"/usr/include/c++/*/ | sort -V | tail -1)
@@ -104,7 +116,8 @@ case "$os" in
     ;;
 esac
 : "${common_extra:=}"
-: "${linker:=lld}"
+: "${ld_path:=}"
+if [ -n "$ld_path" ]; then ld_flag="--ld-path=$ld_path"; else ld_flag="-fuse-ld=lld"; fi
 
 for tool in clang clang++; do
   case "$tool" in
@@ -118,7 +131,7 @@ for tool in clang clang++; do
 # with warnings as errors.
 exec /usr/bin/$tool --target=$triple --sysroot=$sysroot \\
   -Wno-unused-command-line-argument \\
-  $rt_extra -fuse-ld=$linker $common_extra $extra \\
+  $rt_extra $ld_flag $common_extra $extra \\
   -include $fixups "\$@" $link_extra
 W
   chmod +x "$bindir/$triple-$tool"

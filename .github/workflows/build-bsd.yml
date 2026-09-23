@@ -96,6 +96,18 @@ jobs:
           sudo apt-get install --only-upgrade apt
           sudo apt-get install clang lld llvm autoconf zip unzip file \
               libarchive-tools libcups2-dev libfontconfig1-dev
+          # NetBSD links with GNU ld rather than lld, and GNU ld knows only
+          # the architecture it was built for, so the target's own binutils
+          # has to be installed.  x86_64's comes with the runner.
+          if [ '${{ matrix.target-os }}' = netbsd ]; then
+            case '${{ matrix.arch }}' in
+              x86_64) ld_arch= ;;
+              i386)   ld_arch=i686 ;;
+              *)      ld_arch='${{ matrix.arch }}' ;;
+            esac
+            [ -z "$ld_arch" ] ||
+                sudo apt-get install "binutils-$ld_arch-linux-gnu"
+          fi
 
       - name: 'Check cache for sysroot'
         id: get-cached-sysroot
