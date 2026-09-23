@@ -855,6 +855,14 @@ ifeq ($(call And, $(call isTargetOs, solaris) $(call isTargetCpuArch, sparc)), f
   BUILD_HOTSPOT_JTREG_EXCLUDE += liboverflow.c exeThreadSignalMask.c
 endif
 
+# The BSDs other than macOS keep pthread_create in libpthread rather
+# than in libc, so these need it named the way linux does.
+ifeq ($(call isTargetOs, bsd), true)
+    BUILD_HOTSPOT_JTREG_LIBRARIES_LIBS_libstepBreakPopReturn := -lpthread
+    BUILD_HOTSPOT_JTREG_LIBRARIES_LIBS_libIndyRedefineClass := -lpthread
+    BUILD_HOTSPOT_JTREG_LIBRARIES_LIBS_libredefineClasses := -lpthread
+endif
+
 ifeq ($(call isTargetOs, linux), true)
     BUILD_HOTSPOT_JTREG_LIBRARIES_LDFLAGS_libtest-rw := -z noexecstack
     BUILD_HOTSPOT_JTREG_LIBRARIES_LDFLAGS_libtest-rwx := -z execstack
