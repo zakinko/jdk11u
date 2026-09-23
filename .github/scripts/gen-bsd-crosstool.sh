@@ -27,7 +27,12 @@
 # wrapper rather than a set of flags because configure records the compiler
 # as one word and passes it around that way.
 #
-# Usage: gen-bsd-crosstool.sh <os> <triple> <sysroot> <bindir>
+# Usage: gen-bsd-crosstool.sh <os> <triple> <sysroot> <bindir> [suffix]
+#
+# The suffix picks a particular LLVM, as in "-20" for clang-20 and
+# llvm-nm-20.  Some targets need one: clang 18 crashes in the post-RA
+# pass on aarch64-unknown-openbsd.  Without it the unversioned tools
+# are used.
 
 set -eu
 
@@ -35,6 +40,7 @@ os="$1"
 triple="$2"
 sysroot="$3"
 bindir="$4"
+llvm_suffix="${5-}"
 mkdir -p "$bindir"
 
 fixups="$bindir/bsd-clang-fixups.h"
@@ -129,7 +135,7 @@ for tool in clang clang++; do
 # -Wno-unused-command-line-argument: the linker flags below are passed on
 # every invocation, including the compile-only ones, and the JDK builds
 # with warnings as errors.
-exec /usr/bin/$tool --target=$triple --sysroot=$sysroot \\
+exec /usr/bin/$tool$llvm_suffix --target=$triple --sysroot=$sysroot \\
   -Wno-unused-command-line-argument \\
   $rt_extra $ld_flag $common_extra $extra \\
   -include $fixups "\$@" $link_extra
@@ -142,7 +148,7 @@ done
 # so llvm-ar called as x86_64-unknown-freebsd15.1-ar reads the ".1-ar" as a
 # suffix and refuses -- "error: not ranlib, ar, lib or dlltool".
 for tool in ar ranlib strip objcopy nm objdump; do
-  printf '#!/bin/sh\nexec /usr/bin/llvm-%s "$@"\n' "$tool" > "$bindir/$triple-$tool"
+  printf '#!/bin/sh\nexec /usr/bin/llvm-%s%s "$@"\n' "$tool" "$llvm_suffix" > "$bindir/$triple-$tool"
   chmod +x "$bindir/$triple-$tool"
 done
 

@@ -60,7 +60,8 @@ jobs:
            "conf-name":"bsd-aarch64-freebsd"},
           {"target-os":"openbsd","arch":"aarch64",
            "target-triple":"aarch64-unknown-openbsd7.9",
-           "conf-name":"bsd-aarch64-openbsd"}]}
+           "conf-name":"bsd-aarch64-openbsd",
+           "llvm-suffix":"-20"}]}
 
   # DragonFly is x86_64 only, and FreeBSD is the one BSD with a 64-bit
   # PowerPC port: NetBSD's PowerPC ports are all 32-bit, and cpu/ppc is
