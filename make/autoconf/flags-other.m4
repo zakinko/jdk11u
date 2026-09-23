@@ -49,7 +49,13 @@ AC_DEFUN([FLAGS_SETUP_STRIPFLAGS],
   # FIXME: should this really be per platform, or should it be per toolchain type?
   # strip is not provided by clang or solstudio; so guessing platform makes most sense.
   # FIXME: we should really only export STRIPFLAGS from here, not POST_STRIP_CMD.
-  if test "x$OPENJDK_TARGET_OS" = xlinux; then
+  if test "x$OPENJDK_TARGET_OS" = xlinux || test "x$OPENJDK_TARGET_OS" = xbsd; then
+    # Keep everything but the debug sections.  Left empty, strip takes its
+    # default and removes the symbol table as well, so nothing in libjvm can
+    # be named afterwards: the serviceability agent cannot find a vtable to
+    # tell one Metadata from another, and a native stack comes out as
+    # JVM_RaiseSignal+0x4dd9a2.  The debuginfo the symbols went into is not
+    # shipped in the JDK bundle either -- Bundles.gmk filters it out.
     STRIPFLAGS="-g"
   elif test "x$OPENJDK_TARGET_OS" = xsolaris; then
     STRIPFLAGS="-x"
