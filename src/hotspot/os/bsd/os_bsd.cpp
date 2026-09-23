@@ -2623,14 +2623,14 @@ char* os::pd_attempt_reserve_memory_at(size_t bytes, char* requested_addr) {
       // Does this overlap the block we wanted? Give back the overlapped
       // parts and try again.
 
-      size_t top_overlap = requested_addr + (bytes + gap) - base[i];
-      if (top_overlap >= 0 && top_overlap < bytes) {
+      ptrdiff_t top_overlap = requested_addr + (bytes + gap) - base[i];
+      if (top_overlap >= 0 && (size_t)top_overlap < bytes) {
         unmap_memory(base[i], top_overlap);
         base[i] += top_overlap;
         size[i] = bytes - top_overlap;
       } else {
-        size_t bottom_overlap = base[i] + bytes - requested_addr;
-        if (bottom_overlap >= 0 && bottom_overlap < bytes) {
+        ptrdiff_t bottom_overlap = base[i] + bytes - requested_addr;
+        if (bottom_overlap >= 0 && (size_t)bottom_overlap < bytes) {
           unmap_memory(requested_addr, bottom_overlap);
           size[i] = bytes - bottom_overlap;
         } else {
