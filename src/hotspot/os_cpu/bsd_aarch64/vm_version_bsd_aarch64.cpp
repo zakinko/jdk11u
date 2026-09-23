@@ -29,7 +29,12 @@
 #include "runtime/os.hpp"
 #include "runtime/vm_version.hpp"
 #include <sys/sysctl.h>
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#include <sys/auxv.h>
+#include <machine/armreg.h>
+#endif
 
+#ifdef __APPLE__
 static bool cpu_has(const char* optional) {
   uint32_t val;
   size_t len = sizeof(val);
@@ -80,10 +85,76 @@ void VM_Version::get_os_cpu_info() {
   _cpu = CPU_APPLE;
 }
 
-#ifdef __APPLE__
+#else // __APPLE__
 
+// NetBSD is not here on purpose.  It has no <sys/auxv.h>, no
+// elf_aux_info(3) and no AT_HWCAP, and unlike Linux and FreeBSD it does
+// not emulate reads of the EL1 identification registers for userland:
+// measured on NetBSD 11.99.7/aarch64, MRS of ID_AA64ISAR0_EL1,
+// ID_AA64PFR0_EL1 and MIDR_EL1 all raise SIGILL, while CTR_EL0 and
+// DCZID_EL0 read fine.  So there is nothing to ask it, and the features
+// stay at the ARMv8 baseline.
+
+void VM_Version::get_os_cpu_info() {
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+  // Keep the flags in step with Linux's HWCAP, which is what these two
+  // report through the aux vector.
+  unsigned long auxv = 0;
+  elf_aux_info(AT_HWCAP, &auxv, sizeof(auxv));
+
+  STATIC_ASSERT(CPU_FP      == HWCAP_FP);
+  STATIC_ASSERT(CPU_ASIMD   == HWCAP_ASIMD);
+  STATIC_ASSERT(CPU_EVTSTRM == HWCAP_EVTSTRM);
+  STATIC_ASSERT(CPU_AES     == HWCAP_AES);
+  STATIC_ASSERT(CPU_PMULL   == HWCAP_PMULL);
+  STATIC_ASSERT(CPU_SHA1    == HWCAP_SHA1);
+  STATIC_ASSERT(CPU_SHA2    == HWCAP_SHA2);
+  STATIC_ASSERT(CPU_CRC32   == HWCAP_CRC32);
+  STATIC_ASSERT(CPU_LSE     == HWCAP_ATOMICS);
+  STATIC_ASSERT(CPU_FPHP    == HWCAP_FPHP);
+  STATIC_ASSERT(CPU_ASIMDHP == HWCAP_ASIMDHP);
+
+  _features = auxv & (HWCAP_FP      | HWCAP_ASIMD   | HWCAP_EVTSTRM |
+                      HWCAP_AES     | HWCAP_PMULL   | HWCAP_SHA1    |
+                      HWCAP_SHA2    | HWCAP_CRC32   | HWCAP_ATOMICS |
+                      HWCAP_FPHP    | HWCAP_ASIMDHP);
+
+#ifdef __FreeBSD__
+  // OpenBSD traps the read; it offers the model through sysctl hw.model
+  // instead, which needs a table of implementers this port does not
+  // carry, so the implementer is left unknown there.
+  uint64_t midr;
+  __asm__ ("mrs %0, MIDR_EL1" : "=r"(midr));
+  _cpu      = (midr >> 24) & 0xff;
+  _model    = (midr >> 4)  & 0xfff;
+  _variant  = (midr >> 20) & 0xf;
+  _revision = midr & 0xf;
+#endif
+#endif // __FreeBSD__ || __OpenBSD__
+
+  // CTR_EL0 and DCZID_EL0 are readable from EL0 on every BSD here.
+  uint64_t ctr_el0;
+  uint64_t dczid_el0;
+  __asm__ (
+    "mrs %0, CTR_EL0\n"
+    "mrs %1, DCZID_EL0"
+    : "=r"(ctr_el0), "=r"(dczid_el0)
+  );
+
+  _icache_line_size = (1 << (ctr_el0 & 0x0f)) * 4;
+  _dcache_line_size = (1 << ((ctr_el0 >> 16) & 0x0f)) * 4;
+
+  if (!(dczid_el0 & 0x10)) {
+    _zva_length = 4 << (dczid_el0 & 0xf);
+  }
+}
+
+#endif // __APPLE__
+
+// Rosetta is Apple's, and it reports itself through sysctl
+// sysctl.proc_translated rather than through anything the CPU says.  On
+// an aarch64 host there is nothing to translate, here or on the other
+// BSDs, so the answer is the same everywhere.
 bool VM_Version::is_cpu_emulated() {
   return false;
 }
-
-#endif
