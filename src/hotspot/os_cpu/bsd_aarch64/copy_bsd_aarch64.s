@@ -22,7 +22,14 @@
  *
  */
 
+#ifdef __APPLE__
+# Darwin uses _ prefixed global symbols
 #define CFUNC(x) _##x
+#define ELF_TYPE(name, description)
+#else
+#define CFUNC(x) x
+#define ELF_TYPE(name, description) .type name,description
+#endif
 
         .global CFUNC(_Copy_conjoint_words)
         .global CFUNC(_Copy_disjoint_words)
@@ -40,6 +47,7 @@ t6      .req    x9
 t7      .req    x10
 
         .align  6
+        ELF_TYPE(CFUNC(_Copy_disjoint_words),%function)
 CFUNC(_Copy_disjoint_words):
         // Ensure 2 word aligned
         tbz     s, #3, fwd_copy_aligned
@@ -138,6 +146,7 @@ fwd_copy_drain:
         ret
 
         .align  6
+        ELF_TYPE(CFUNC(_Copy_conjoint_words),%function)
 CFUNC(_Copy_conjoint_words):
         sub     t0, d, s
         cmp     t0, count, lsl #3
