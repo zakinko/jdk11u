@@ -32,40 +32,40 @@
 // to be valid. If the load causes a fault, the error value is returned.
 inline int SafeFetch32(int* adr, int errValue) {
   assert(StubRoutines::SafeFetch32_stub(), "stub not yet generated");
-#if defined(__APPLE__) && defined(AARCH64)
+#if defined(BSD) && defined(AARCH64)
   Thread* thread = Thread::current_or_null_safe();
   assert(thread != NULL, "required for W^X management");
   ThreadWXEnable wx(WXExec, thread);
-#endif // __APPLE__ && AARCH64
+#endif // BSD && AARCH64
   return StubRoutines::SafeFetch32_stub()(adr, errValue);
 }
 
 inline intptr_t SafeFetchN(intptr_t* adr, intptr_t errValue) {
   assert(StubRoutines::SafeFetchN_stub(), "stub not yet generated");
-#if defined(__APPLE__) && defined(AARCH64)
+#if defined(BSD) && defined(AARCH64)
   Thread* thread = Thread::current_or_null_safe();
   assert(thread != NULL, "required for W^X management");
   ThreadWXEnable wx(WXExec, thread);
-#endif // __APPLE__ && AARCH64
+#endif // BSD && AARCH64
   return StubRoutines::SafeFetchN_stub()(adr, errValue);
 }
 
 // returns true if SafeFetch32 and SafeFetchN can be used safely (stubroutines are already generated)
 inline bool CanUseSafeFetch32() {
-#if defined (__APPLE__) && defined(AARCH64)
+#if defined(BSD) && defined(AARCH64)
   if (Thread::current_or_null_safe() == NULL) { // workaround for JDK-8282475
     return false;
   }
-#endif // __APPLE__ && AARCH64
+#endif // BSD && AARCH64
   return StubRoutines::SafeFetch32_stub() ? true : false;
 }
 
 inline bool CanUseSafeFetchN() {
-#if defined (__APPLE__) && defined(AARCH64)
+#if defined(BSD) && defined(AARCH64)
   if (Thread::current_or_null_safe() == NULL) {
     return false;
   }
-#endif // __APPLE__ && AARCH64
+#endif // BSD && AARCH64
   return StubRoutines::SafeFetchN_stub() ? true : false;
 }
 
