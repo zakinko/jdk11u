@@ -91,6 +91,14 @@ void VM_Version::get_os_cpu_info() {
   _cpu = CPU_APPLE;
 }
 
+// Rosetta is Apple's, and it reports itself through sysctl
+// sysctl.proc_translated rather than through anything the CPU says.  On
+// an aarch64 host there is nothing to translate, so the answer is false;
+// the header only declares this for Darwin, so define it there too.
+bool VM_Version::is_cpu_emulated() {
+  return false;
+}
+
 #else // __APPLE__
 
 // Each system answers a different way.  FreeBSD and OpenBSD report through
@@ -209,14 +217,6 @@ void VM_Version::get_os_cpu_info() {
   if (!(dczid_el0 & 0x10)) {
     _zva_length = 4 << (dczid_el0 & 0xf);
   }
-}
-
-// Rosetta is Apple's, and it reports itself through sysctl
-// sysctl.proc_translated rather than through anything the CPU says.  On
-// an aarch64 host there is nothing to translate, so the answer is false;
-// the header only declares this for Darwin, so define it there too.
-bool VM_Version::is_cpu_emulated() {
-  return false;
 }
 
 #endif // __APPLE__
