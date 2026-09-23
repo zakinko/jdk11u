@@ -92,8 +92,8 @@ jobs:
           {"target-os":"netbsd","arch":"sparc64",
            "target-triple":"sparc64-unknown-netbsd",
            "conf-name":"bsd-sparc64-netbsd",
-           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/pkg/include --with-libffi-lib=$PWD/sysroot/usr/pkg/lib"},
+           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/pkg/include --with-libffi-lib=$PWD/sysroot/usr/pkg/lib --with-extra-cflags=-mcmodel=medany --with-extra-cxxflags=-mcmodel=medany"},
           {"target-os":"openbsd","arch":"sparc64",
            "target-triple":"sparc64-unknown-openbsd7.9",
            "conf-name":"bsd-sparc64-openbsd",
-           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/local/include --with-libffi-lib=$PWD/sysroot/usr/local/lib"}]}
+           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/local/include --with-libffi-lib=$PWD/sysroot/usr/local/lib --with-extra-cflags=-mcmodel=medany --with-extra-cxxflags=-mcmodel=medany"}]}
