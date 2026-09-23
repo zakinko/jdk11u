@@ -160,7 +160,9 @@ static pid_t filename_to_pid(const char* filename) {
   // a filename that doesn't begin with a digit is not a
   // candidate for conversion.
   //
-  if (!isdigit(*filename)) {
+  // NetBSD's isdigit is a macro indexing _ctype_tab_, so a plain char with
+  // the high bit set reads outside the table.
+  if (!isdigit((unsigned char)*filename)) {
     return 0;
   }
 
