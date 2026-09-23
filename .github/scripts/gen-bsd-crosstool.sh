@@ -96,6 +96,15 @@ case "$os" in
       echo "$0: no GNU ld for $ld_arch; install binutils-$ld_arch-linux-gnu" >&2
       exit 1
     fi
+    # The Zero targets call through libffi, which NetBSD ships in pkgsrc,
+    # so it lands under usr/pkg rather than usr/lib.  Anything that links
+    # against libjvm has to be able to find it a second time -- the gtest
+    # launcher stops at "libffi.so.8 ... not found (try using -rpath or
+    # -rpath-link)" -- and rpath-link is what answers that without putting
+    # a build path into the binary.
+    if [ -d "$sysroot/usr/pkg/lib" ]; then
+      common_extra="-L$sysroot/usr/pkg/lib -Wl,-rpath-link=$sysroot/usr/pkg/lib"
+    fi
     ;;
   dragonfly)
     cxxdir=$(ls -d "$sysroot"/usr/include/c++/*/ | sort -V | tail -1)
@@ -113,7 +122,10 @@ case "$os" in
     cxx_extra=""
     rt_extra=""
     link_extra=""
-    common_extra="-isystem $sysroot/usr/local/include -L$sysroot/usr/local/lib"
+    # -rpath-link for the same reason as NetBSD above: libffi comes from a
+    # package, and whatever links against libjvm has to find it again.
+    common_extra="-isystem $sysroot/usr/local/include -L$sysroot/usr/local/lib \
+        -Wl,-rpath-link=$sysroot/usr/local/lib"
     ;;
   *)
     cxx_extra=""
