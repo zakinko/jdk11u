@@ -121,7 +121,9 @@ typedef DWORDLONG       julong;
 #define PATH_SEPARATOR '\\'
 #else
 typedef signed char byte;
-#ifdef _LP64
+/* Same rule as jni_md.h: jlong is int64_t, which OpenBSD spells
+   "long long" whatever the model. */
+#if defined(_LP64) && !defined(__OpenBSD__)
 typedef long jlong;
 typedef long unsigned julong;
 #else
