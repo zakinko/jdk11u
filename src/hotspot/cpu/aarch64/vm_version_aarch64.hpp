@@ -95,6 +95,8 @@ public:
     CPU_SHA2         = (1<<6),
     CPU_CRC32        = (1<<7),
     CPU_LSE          = (1<<8),
+    CPU_FPHP         = (1<<9),
+    CPU_ASIMDHP      = (1<<10),
     // flags above must follow Linux HWCAP
     CPU_STXR_PREFETCH= (1 << 29),
     CPU_A53MAC       = (1 << 30),
