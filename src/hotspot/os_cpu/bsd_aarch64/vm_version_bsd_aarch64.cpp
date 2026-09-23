@@ -211,12 +211,12 @@ void VM_Version::get_os_cpu_info() {
   }
 }
 
-#endif // __APPLE__
-
 // Rosetta is Apple's, and it reports itself through sysctl
 // sysctl.proc_translated rather than through anything the CPU says.  On
-// an aarch64 host there is nothing to translate, here or on the other
-// BSDs, so the answer is the same everywhere.
+// an aarch64 host there is nothing to translate, so the answer is false;
+// the header only declares this for Darwin, so define it there too.
 bool VM_Version::is_cpu_emulated() {
   return false;
 }
+
+#endif // __APPLE__
