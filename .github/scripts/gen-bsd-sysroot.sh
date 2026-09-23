@@ -93,6 +93,18 @@ case "$os" in
       fetch "$set.$ext" "$base/$set.$ext"
       extract "$set.$ext"
     done
+    # i386 and sparc64 have no HotSpot, so they are built as Zero, which
+    # calls through libffi.  NetBSD keeps it in pkgsrc rather than base,
+    # and a binary package unpacks relative to /usr/pkg.
+    case "$arch" in
+      i386|sparc64)
+        pkgs=https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$port/$netbsd_release/All
+        fetch libffi.tgz "$pkgs/libffi-3.5.2.tgz"
+        sudo mkdir -p "$sysroot/usr/pkg"
+        echo "extracting libffi.tgz into usr/pkg"
+        sudo tar xf libffi.tgz -C "$sysroot/usr/pkg" include lib
+        ;;
+    esac
     ;;
 
   freebsd)
@@ -135,6 +147,14 @@ case "$os" in
     sudo mkdir -p "$sysroot/usr/local"
     echo "extracting libiconv.tgz into usr/local"
     sudo tar xf libiconv.tgz -C "$sysroot/usr/local"
+    # sparc64 has no HotSpot and is built as Zero, which calls through
+    # libffi.  That is a package here too.
+    if [ "$arch" = sparc64 ]; then
+      fetch libffi.tgz \
+          https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/$pkgdir/libffi-3.5.2p0.tgz
+      echo "extracting libffi.tgz into usr/local"
+      sudo tar xf libffi.tgz -C "$sysroot/usr/local" include lib
+    fi
     ;;
 
   dragonfly)
@@ -211,7 +231,8 @@ done
 #     '__cxa_new_handler'; recompile with -fPIC
 #
 # because the archive is not built PIC.  Make the symlinks lld expects.
-for dir in "$sysroot"/usr/lib "$sysroot"/lib; do
+for dir in "$sysroot"/usr/lib "$sysroot"/lib "$sysroot"/usr/pkg/lib \
+           "$sysroot"/usr/local/lib; do
   [ -d "$dir" ] || continue
   for so in "$dir"/lib*.so.*; do
     [ -e "$so" ] || continue

@@ -52,6 +52,24 @@ on:
         required: false
         type: boolean
         default: false
+      targets:
+        description: 'JSON matrix of targets to cross-build'
+        required: false
+        type: string
+        default: >-
+          {"include":[
+            {"target-os":"netbsd","arch":"x86_64",
+             "target-triple":"x86_64-unknown-netbsd",
+             "conf-name":"bsd-x86_64-netbsd"},
+            {"target-os":"freebsd","arch":"x86_64",
+             "target-triple":"x86_64-unknown-freebsd15.1",
+             "conf-name":"bsd-x86_64-freebsd"},
+            {"target-os":"openbsd","arch":"x86_64",
+             "target-triple":"x86_64-unknown-openbsd7.9",
+             "conf-name":"bsd-x86_64-openbsd"},
+            {"target-os":"dragonfly","arch":"x86_64",
+             "target-triple":"x86_64-unknown-dragonfly",
+             "conf-name":"bsd-x86_64-dragonfly"}]}
 
 jobs:
   build-bsd:
@@ -60,25 +78,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        target-os:
-          - netbsd
-          - freebsd
-          - openbsd
-          - dragonfly
-        include:
-          - target-os: netbsd
-            target-triple: x86_64-unknown-netbsd
-            conf-name: bsd-x86_64-netbsd
-          - target-os: freebsd
-            target-triple: x86_64-unknown-freebsd15.1
-            conf-name: bsd-x86_64-freebsd
-          - target-os: openbsd
-            target-triple: x86_64-unknown-openbsd7.9
-            conf-name: bsd-x86_64-openbsd
-          - target-os: dragonfly
-            target-triple: x86_64-unknown-dragonfly
-            conf-name: bsd-x86_64-dragonfly
+      matrix: ${{ fromJSON(inputs.targets) }}
 
     steps:
       - name: 'Checkout the JDK source'
@@ -102,11 +102,13 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: sysroot
-          key: sysroot-${{ matrix.target-os }}-${{ hashFiles('./.github/scripts/gen-bsd-sysroot.sh') }}
+          key: sysroot-${{ matrix.target-os }}-${{ matrix.arch }}-${{ hashFiles('./.github/scripts/gen-bsd-sysroot.sh') }}
 
       - name: 'Create sysroot'
         id: create-sysroot
-        run: bash .github/scripts/gen-bsd-sysroot.sh '${{ matrix.target-os }}' sysroot
+        run: >
+          bash .github/scripts/gen-bsd-sysroot.sh
+          '${{ matrix.target-os }}' sysroot '${{ matrix.arch }}'
         if: steps.get-cached-sysroot.outputs.cache-hit != 'true'
 
       - name: 'Prepare the cross compiler'
@@ -142,6 +144,7 @@ jobs:
           CXX=${{ matrix.target-triple }}-clang++
           BUILD_CC=clang
           BUILD_CXX=clang++
+          ${{ matrix.extra-configure }}
           ${{ inputs.extra-conf-options }} ${{ inputs.configure-arguments }} || (
           echo "Dumping config.log:" &&
           cat config.log &&

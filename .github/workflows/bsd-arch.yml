@@ -1,0 +1,98 @@
+#
+# Cross-build the BSDs for machines other than x86_64.
+#
+# Kept apart from the tier1 workflow on purpose: these targets have never
+# been built here, so they fail for reasons of their own, and mixing them
+# into the run that guards x86_64 would make neither readable.  Dispatch
+# only, one architecture group at a time.
+#
+# There is no runner for any of these, and for most there is no image to
+# run the result on either, so this says "it compiles and links" and
+# nothing more.  Which machines can actually execute what comes out:
+#
+#   aarch64    NetBSD, FreeBSD and OpenBSD images exist in vmactions, and
+#              a NetBSD/aarch64 VM runs on an Apple Silicon host under HVF
+#   powerpc64  FreeBSD only (vmactions 15.1-powerpc64), under TCG
+#   sparc64    NetBSD and OpenBSD images exist, under TCG; Zero only, as
+#              HotSpot dropped the SPARC port in JEP 381
+#   i386       no image anywhere; Zero only, since cpu/x86 has had no
+#              32-bit files since JEP 503
+#
+name: 'BSD other architectures'
+
+# A workflow_dispatch is only offered for files that are on the default
+# branch, and this one is not, so the branch is the trigger: push the port
+# to bsd-arch-11 and all three groups run.  The dispatch input is kept for
+# the day the file does reach a default branch.
+on:
+  push:
+    branches:
+      - bsd-arch-11
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: 'Which group of targets to build'
+        required: true
+        type: choice
+        default: 'aarch64'
+        options:
+          - aarch64
+          - powerpc64
+          - zero
+
+concurrency:
+  group: bsd-arch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aarch64:
+    name: aarch64
+    if: github.event_name == 'push' || inputs.arch == 'aarch64'
+    uses: ./.github/workflows/build-bsd.yml
+    with:
+      targets: >-
+        {"include":[
+          {"target-os":"netbsd","arch":"aarch64",
+           "target-triple":"aarch64-unknown-netbsd",
+           "conf-name":"bsd-aarch64-netbsd"},
+          {"target-os":"freebsd","arch":"aarch64",
+           "target-triple":"aarch64-unknown-freebsd15.1",
+           "conf-name":"bsd-aarch64-freebsd"},
+          {"target-os":"openbsd","arch":"aarch64",
+           "target-triple":"aarch64-unknown-openbsd7.9",
+           "conf-name":"bsd-aarch64-openbsd"}]}
+
+  # DragonFly is x86_64 only, and FreeBSD is the one BSD with a 64-bit
+  # PowerPC port: NetBSD's PowerPC ports are all 32-bit, and cpu/ppc is
+  # 64-bit only.
+  powerpc64:
+    name: powerpc64
+    if: github.event_name == 'push' || inputs.arch == 'powerpc64'
+    uses: ./.github/workflows/build-bsd.yml
+    with:
+      targets: >-
+        {"include":[
+          {"target-os":"freebsd","arch":"powerpc64",
+           "target-triple":"powerpc64-unknown-freebsd15.1",
+           "conf-name":"bsd-powerpc64-freebsd"}]}
+
+  zero:
+    name: zero
+    if: github.event_name == 'push' || inputs.arch == 'zero'
+    uses: ./.github/workflows/build-bsd.yml
+    with:
+      extra-conf-options: '--with-jvm-variants=zero'
+      targets: >-
+        {"include":[
+          {"target-os":"netbsd","arch":"i386",
+           "target-triple":"i386-unknown-netbsd",
+           "conf-name":"bsd-i386-netbsd",
+           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/pkg/include --with-libffi-lib=$PWD/sysroot/usr/pkg/lib"},
+          {"target-os":"netbsd","arch":"sparc64",
+           "target-triple":"sparc64-unknown-netbsd",
+           "conf-name":"bsd-sparc64-netbsd",
+           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/pkg/include --with-libffi-lib=$PWD/sysroot/usr/pkg/lib"},
+          {"target-os":"openbsd","arch":"sparc64",
+           "target-triple":"sparc64-unknown-openbsd7.9",
+           "conf-name":"bsd-sparc64-openbsd",
+           "extra-configure":"--with-libffi-include=$PWD/sysroot/usr/local/include --with-libffi-lib=$PWD/sysroot/usr/local/lib"}]}
