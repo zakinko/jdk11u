@@ -46,12 +46,8 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS],
 
   # Setup the build toolchain
 
-  # When building a buildjdk it is only ever one variant, and it has to be
-  # the one the target is being built with: a machine with no HotSpot --
-  # i386 and sparc64 have none -- gets Zero, and the buildjdk has to be
-  # Zero as well or the path points at a server directory that was never
-  # made.
-  BUILD_JVM_VARIANT_PATH=$JVM_VARIANT_MAIN
+  # When building a buildjdk, it's always only the server variant
+  BUILD_JVM_VARIANT_PATH=server
 
   FLAGS_SETUP_LDFLAGS_CPU_DEP([BUILD], [OPENJDK_BUILD_])
 
