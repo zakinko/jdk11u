@@ -2576,14 +2576,11 @@ char* os::pd_attempt_reserve_memory_at(size_t bytes, char* requested_addr) {
   assert(bytes % os::vm_page_size() == 0, "reserving unexpected size block");
 
 #if defined(__FreeBSD__) || defined(__DragonFly__)
-  // Neither of these will place a mapping at a hint.  FreeBSD does not honour
-  // it at all: with ASLR on, a range it has just given back comes back
-  // somewhere else, three times out of three when measured.  DragonFly honours
-  // it only where nothing is in the way -- asked for a page inside a hole
-  // between two mappings it answers with the first free address above them
-  // instead, sixteen times out of sixteen -- so os::attempt_reserve_memory_at
-  // could never reserve inside a hole, and attempt_reserve_memory_between
-  // returned nothing at all.
+  // Neither of these will place a mapping at a hint.  FreeBSD ignores it
+  // outright under ASLR; DragonFly honours it only where nothing is in the
+  // way, and otherwise answers with the first free address above.  So
+  // os::attempt_reserve_memory_at could never reserve inside a hole, and
+  // attempt_reserve_memory_between returned nothing at all.
   //
   // Both have a flag that means what Linux's MAP_FIXED_NOREPLACE means: the
   // address asked for if it is free, and failure rather than a clobbered

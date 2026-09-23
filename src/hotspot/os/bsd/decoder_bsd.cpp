@@ -43,18 +43,11 @@ bool ElfDecoder::demangle(const char* symbol, char *buf, int buflen) {
   if (symbol && *symbol == '.') symbol += 1;
 #endif
 
-  // Only an Itanium mangled name starts _Z, and only such a name may be
-  // handed to the demangler.  It is not obliged to reject anything else, and
-  // FreeBSD's does not: it reads thread_start as a template-id and answers
-  // "operator->", and every other C symbol in a native stack comes back as
-  // some plausible-looking type.  A whole hs_err stack of them reads as
-  //
-  //   V  [libjvm.so+0xd48ddd]  char+0xcd
-  //   C  [libnativeStack.so+0x1cbe]  unsigned short+0x3e
-  //   C  [libthr.so.3+0x10e41]  operator->+0x951
-  //
-  // where the last of those is thread_start.  The name a C function was
-  // given is already the name to print, so leave it alone.
+  // Only an Itanium mangled name starts _Z, and the demangler is not
+  // obliged to reject anything else.  FreeBSD's does not: it reads
+  // thread_start as a template-id and answers "operator->", so an hs_err
+  // stack of C symbols comes out as a list of plausible-looking types.
+  // The name a C function was given is already the name to print.
   if (symbol == NULL || symbol[0] != '_' || symbol[1] != 'Z') {
     return false;
   }
