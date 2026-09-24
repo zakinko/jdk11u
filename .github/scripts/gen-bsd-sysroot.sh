@@ -114,6 +114,7 @@ case "$os" in
       x86_64)    relpath=amd64 ;;
       aarch64)   relpath=arm64/aarch64 ;;
       powerpc64) relpath=powerpc/powerpc64 ;;
+      powerpc64le) relpath=powerpc/powerpc64le ;;
       *) unsupported ;;
     esac
     base=https://download.freebsd.org/releases/$relpath/15.1-RELEASE
@@ -130,6 +131,8 @@ case "$os" in
       x86_64)  setdir=amd64 ;   pkgdir=amd64 ;;
       aarch64) setdir=arm64 ;   pkgdir=aarch64 ;;
       sparc64) setdir=sparc64 ; pkgdir=sparc64 ;;
+      i386)    setdir=i386 ;    pkgdir=i386 ;;
+      powerpc64) setdir=powerpc64 ; pkgdir=powerpc64 ;;
       *) unsupported ;;
     esac
     base=https://cdn.openbsd.org/pub/OpenBSD/7.9/$setdir
@@ -149,12 +152,13 @@ case "$os" in
     sudo tar xf libiconv.tgz -C "$sysroot/usr/local"
     # sparc64 has no HotSpot and is built as Zero, which calls through
     # libffi.  That is a package here too.
-    if [ "$arch" = sparc64 ]; then
+    case "$arch" in i386|sparc64)
       fetch libffi.tgz \
           https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/$pkgdir/libffi-3.5.2p0.tgz
       echo "extracting libffi.tgz into usr/local"
       sudo tar xf libffi.tgz -C "$sysroot/usr/local" include lib
-    fi
+      ;;
+    esac
     ;;
 
   dragonfly)
