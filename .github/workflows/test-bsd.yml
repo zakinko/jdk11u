@@ -203,8 +203,11 @@ jobs:
             # the flag back off its launcher.  Getting this wrong costs a full
             # run, and it fails as a CodeHeap message an hour later rather
             # than here.
+            # Keep what jlink says.  Thrown away, an abort here arrives as
+            # "could not build a probe image" and the run has to be repeated
+            # to learn anything; aarch64 spent one that way.
             "$JDK/bin/jlink" --module-path "$JDK/jmods" --add-modules java.base \
-                --output "$PWD/paxprobe" >/dev/null 2>&1 || :
+                --output "$PWD/paxprobe" > "$PWD/jlink.log" 2>&1 || :
             if [ -x "$PWD/paxprobe/bin/java" ]; then
               /usr/sbin/paxctl "$PWD/paxprobe/bin/java"
               /usr/sbin/paxctl "$PWD/paxprobe/bin/java" | grep -q 'mprotect' || {
@@ -214,7 +217,13 @@ jobs:
               }
               "$PWD/paxprobe/bin/java" -version 2>&1 | head -2
             else
-              echo "jlink could not build a probe image"
+              echo "jlink could not build a probe image; it said:"
+              sed 's/^/  /' "$PWD/jlink.log" | head -40
+              for e in "$PWD"/hs_err_pid*.log; do
+                [ -f "$e" ] || continue
+                echo "--- $e ---"
+                head -30 "$e" | sed 's/^/  /'
+              done
               exit 1
             fi
             rm -rf "$PWD/paxprobe"
