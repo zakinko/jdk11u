@@ -1,0 +1,66 @@
+#
+# Cross-build NetBSD/aarch64, then run tier1 on a real NetBSD/aarch64.
+#
+# The x86_64 tier1 workflow beside this one boots its guest on an x86_64
+# runner, where the guest matches the host and KVM does the work.  An
+# aarch64 guest on that runner would be emulated instruction by instruction
+# and tier1 would never finish inside the six hours a hosted job gets.  On
+# an arm64 runner the guest matches the host again, so this is the same
+# arrangement, moved one architecture over.
+#
+# The release matches the x86_64 side so the two sets of results can be
+# read against each other.  vmactions publishes a NetBSD 10.1 aarch64 image
+# as well as an 11.0 one, so either would boot.
+#
+name: 'BSD tier1 (aarch64)'
+
+on:
+  push:
+    branches:
+      - tier1-bsd-aarch64-11
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'NetBSD release to run the tests in'
+        required: false
+        default: '10.1'
+
+concurrency:
+  group: bsd-tier1-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jtreg:
+    name: jtreg
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 'Checkout the scripts'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            .github
+            make/conf/github-actions.conf
+
+      - name: 'Build JTReg'
+        uses: ./.github/actions/build-jtreg
+
+  build:
+    name: build
+    uses: ./.github/workflows/build-bsd.yml
+    with:
+      targets: >-
+        {"include":[
+          {"target-os":"netbsd","arch":"aarch64",
+           "target-triple":"aarch64-unknown-netbsd",
+           "conf-name":"bsd-aarch64-netbsd"}]}
+
+  test:
+    name: test
+    needs: [jtreg, build]
+    uses: ./.github/workflows/test-bsd.yml
+    with:
+      target-os: 'netbsd'
+      platform: 'bsd-aarch64-netbsd'
+      arch: 'aarch64'
+      runner: 'ubuntu-24.04-arm'
+      release: ${{ inputs.release || '10.1' }}

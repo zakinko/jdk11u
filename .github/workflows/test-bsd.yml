@@ -28,11 +28,24 @@ on:
         required: false
         type: string
         default: '10.1'
+      arch:
+        description: >-
+          The machine the guest runs as.  Empty is the image's own default,
+          which is x86_64.  A guest whose architecture differs from the
+          runner's is emulated, so aarch64 belongs with an arm64 runner.
+        required: false
+        type: string
+        default: ''
+      runner:
+        description: 'The GitHub runner to boot the guest on'
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
 
 jobs:
   test:
     name: test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.runner }}
 
     strategy:
       fail-fast: false
@@ -122,6 +135,7 @@ jobs:
         uses: vmactions/netbsd-vm@v1.5.0
         with:
           release: ${{ inputs.release }}
+          arch: ${{ inputs.arch }}
           mem: 6144
           cpu: 4
           usesh: true
