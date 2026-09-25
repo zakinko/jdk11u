@@ -124,13 +124,10 @@ void VM_Version::get_os_cpu_info() {
   STATIC_ASSERT(CPU_SHA2    == HWCAP_SHA2);
   STATIC_ASSERT(CPU_CRC32   == HWCAP_CRC32);
   STATIC_ASSERT(CPU_LSE     == HWCAP_ATOMICS);
-  STATIC_ASSERT(CPU_FPHP    == HWCAP_FPHP);
-  STATIC_ASSERT(CPU_ASIMDHP == HWCAP_ASIMDHP);
 
   _features = auxv & (HWCAP_FP      | HWCAP_ASIMD   | HWCAP_EVTSTRM |
                       HWCAP_AES     | HWCAP_PMULL   | HWCAP_SHA1    |
-                      HWCAP_SHA2    | HWCAP_CRC32   | HWCAP_ATOMICS |
-                      HWCAP_FPHP    | HWCAP_ASIMDHP);
+                      HWCAP_SHA2    | HWCAP_CRC32   | HWCAP_ATOMICS);
 
 #ifdef __FreeBSD__
   // OpenBSD traps the read; it offers the model through sysctl hw.model
