@@ -130,6 +130,15 @@ jobs:
         with:
           platform: ${{ inputs.platform }}
 
+      # Whether the guest is accelerated decides whether a six-hour job is
+      # enough, and it is easy to get wrong: qemu lists kvm under -accel
+      # help when the binary was built with it, which says nothing about
+      # this host.  The device is what counts, so print that.
+      - name: 'Say whether this runner can accelerate a guest'
+        run: |
+          echo "runner: ${{ runner.os }} ${{ runner.arch }}"
+          ls -l /dev/kvm || echo "/dev/kvm: absent, the guest will be emulated"
+
       - name: 'Run tests in a NetBSD virtual machine'
         id: run-tests
         uses: vmactions/netbsd-vm@v1.5.0
