@@ -87,13 +87,15 @@ case "$os" in
     # one that matches the target rather than /usr/bin/ld.bfd, which is
     # the host's and rejects an aarch64 crt0.o as "file in wrong format".
     # Debian names the 32-bit x86 toolchain after i686, not after i386.
+    # 32-bit arm is the one whose tuple does not end in -gnu.
     case "${triple%%-*}" in
-      i386) ld_arch=i686 ;;
-      *)    ld_arch=${triple%%-*} ;;
+      i386)  gnu=i686-linux-gnu ;;
+      armv7) gnu=arm-linux-gnueabihf ;;
+      *)     gnu=${triple%%-*}-linux-gnu ;;
     esac
-    ld_path=$(command -v "$ld_arch-linux-gnu-ld.bfd" || true)
+    ld_path=$(command -v "$gnu-ld.bfd" || true)
     if [ -z "$ld_path" ]; then
-      echo "$0: no GNU ld for $ld_arch; install binutils-$ld_arch-linux-gnu" >&2
+      echo "$0: no GNU ld for $gnu; install binutils-$gnu" >&2
       exit 1
     fi
     # The Zero targets call through libffi, which NetBSD ships in pkgsrc,

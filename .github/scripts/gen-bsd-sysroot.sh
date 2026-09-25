@@ -81,11 +81,18 @@ case "$os" in
     # NetBSD names a port after the board family where the CPU is not the
     # whole story, so aarch64 lives under evbarm-aarch64.  The sets are xz
     # everywhere except i386, which 10.1 still ships gzipped.
+    # pkgsrc files its binary packages by MACHINE_ARCH, which differs from
+    # the port name wherever the port is a board family.
     case "$arch" in
-      x86_64)  port=amd64 ;          ext=tar.xz ;;
-      aarch64) port=evbarm-aarch64 ; ext=tar.xz ;;
-      sparc64) port=sparc64 ;        ext=tar.xz ;;
-      i386)    port=i386 ;           ext=tgz ;;
+      x86_64)  port=amd64 ;           ext=tar.xz ; pkgarch=x86_64 ;;
+      aarch64) port=evbarm-aarch64 ;  ext=tar.xz ; pkgarch=aarch64 ;;
+      sparc64) port=sparc64 ;         ext=tar.xz ; pkgarch=sparc64 ;;
+      i386)    port=i386 ;            ext=tgz ;    pkgarch=i386 ;;
+      armv7)   port=evbarm-earmv7hf ; ext=tgz ;    pkgarch=earmv7hf ;;
+      # There is no riscv-riscv64 release before 11.0, so the 10.1 pin
+      # above has nothing to hold on to here.
+      riscv64) port=riscv-riscv64 ;   ext=tgz ;    pkgarch=riscv64
+               netbsd_release=11.0 ;;
       *) unsupported ;;
     esac
     base=https://cdn.netbsd.org/pub/NetBSD/NetBSD-$netbsd_release/$port/binary/sets
@@ -93,12 +100,12 @@ case "$os" in
       fetch "$set.$ext" "$base/$set.$ext"
       extract "$set.$ext"
     done
-    # i386 and sparc64 have no HotSpot, so they are built as Zero, which
+    # The machines with no HotSpot port on BSD are built as Zero, which
     # calls through libffi.  NetBSD keeps it in pkgsrc rather than base,
     # and a binary package unpacks relative to /usr/pkg.
     case "$arch" in
-      i386|sparc64)
-        pkgs=https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$port/$netbsd_release/All
+      i386|sparc64|armv7|riscv64)
+        pkgs=https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$pkgarch/$netbsd_release/All
         fetch libffi.tgz "$pkgs/libffi-3.5.2.tgz"
         sudo mkdir -p "$sysroot/usr/pkg"
         echo "extracting libffi.tgz into usr/pkg"
@@ -133,6 +140,8 @@ case "$os" in
       sparc64) setdir=sparc64 ; pkgdir=sparc64 ;;
       i386)    setdir=i386 ;    pkgdir=i386 ;;
       powerpc64) setdir=powerpc64 ; pkgdir=powerpc64 ;;
+      armv7)   setdir=armv7 ;   pkgdir=arm ;;
+      riscv64) setdir=riscv64 ; pkgdir=riscv64 ;;
       *) unsupported ;;
     esac
     base=https://cdn.openbsd.org/pub/OpenBSD/7.9/$setdir
@@ -150,9 +159,8 @@ case "$os" in
     sudo mkdir -p "$sysroot/usr/local"
     echo "extracting libiconv.tgz into usr/local"
     sudo tar xf libiconv.tgz -C "$sysroot/usr/local"
-    # sparc64 has no HotSpot and is built as Zero, which calls through
-    # libffi.  That is a package here too.
-    case "$arch" in i386|sparc64)
+    # The Zero machines call through libffi, which is a package here too.
+    case "$arch" in i386|sparc64|armv7|riscv64)
       fetch libffi.tgz \
           https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/$pkgdir/libffi-3.5.2p0.tgz
       echo "extracting libffi.tgz into usr/local"

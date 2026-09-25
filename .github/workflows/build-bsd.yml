@@ -107,12 +107,12 @@ jobs:
           fi
           if [ '${{ matrix.target-os }}' = netbsd ]; then
             case '${{ matrix.arch }}' in
-              x86_64) ld_arch= ;;
-              i386)   ld_arch=i686 ;;
-              *)      ld_arch='${{ matrix.arch }}' ;;
+              x86_64) gnu= ;;
+              i386)   gnu=i686-linux-gnu ;;
+              armv7)  gnu=arm-linux-gnueabihf ;;
+              *)      gnu='${{ matrix.arch }}-linux-gnu' ;;
             esac
-            [ -z "$ld_arch" ] ||
-                sudo apt-get install "binutils-$ld_arch-linux-gnu"
+            [ -z "$gnu" ] || sudo apt-get install "binutils-$gnu"
           fi
 
       - name: 'Check cache for sysroot'
