@@ -36,7 +36,8 @@
  * systems but the correct format prefix for 64-bit integers is ll.
  * Solaris compilers will define __sparcv9 or __x86_64 on 64bit compilations.
  */
-#if !defined (_MSC_VER) && \
+// julong is unsigned long long on OpenBSD whatever the model; see defines.h.
+#if !defined (_MSC_VER) && !defined(__OpenBSD__) && \
     (defined(_LP64) || defined(__sparcv9) || defined(__x86_64))
   #define LONG_LONG_FORMAT "%ld"
   #define LONG_LONG_HEX_FORMAT "%lx"
