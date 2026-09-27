@@ -280,6 +280,12 @@ static char cpu_arch[] = "arm";
 static char cpu_arch[] = "aarch64";
 #elif defined(PPC32)
 static char cpu_arch[] = "ppc";
+#elif defined(PPC64)
+#ifdef VM_LITTLE_ENDIAN
+static char cpu_arch[] = "ppc64le";
+#else
+static char cpu_arch[] = "ppc64";
+#endif
 #elif defined(SPARC)
   #ifdef _LP64
 static char cpu_arch[] = "sparcv9";
@@ -1529,7 +1535,11 @@ void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
     {EM_SPARC32PLUS, EM_SPARC,   ELFCLASS32, ELFDATA2MSB, (char*)"Sparc 32"},
     {EM_SPARCV9,     EM_SPARCV9, ELFCLASS64, ELFDATA2MSB, (char*)"Sparc v9 64"},
     {EM_PPC,         EM_PPC,     ELFCLASS32, ELFDATA2MSB, (char*)"Power PC 32"},
+#if defined(VM_LITTLE_ENDIAN)
+    {EM_PPC64,       EM_PPC64,   ELFCLASS64, ELFDATA2LSB, (char*)"Power PC 64 LE"},
+#else
     {EM_PPC64,       EM_PPC64,   ELFCLASS64, ELFDATA2MSB, (char*)"Power PC 64"},
+#endif
     {EM_ARM,         EM_ARM,     ELFCLASS32,   ELFDATA2LSB, (char*)"ARM"},
     {EM_AARCH64,     EM_AARCH64, ELFCLASS64,   ELFDATA2LSB, (char*)"AARCH64"},
     {EM_S390,        EM_S390,    ELFCLASSNONE, ELFDATA2MSB, (char*)"IBM System/390"},
