@@ -102,6 +102,7 @@ define SetupTestFilesCompilationBody
         LDFLAGS := $$($1_LDFLAGS) $$($1_LDFLAGS_$$(name)), \
         DISABLED_WARNINGS_CXX_solstudio := wvarhidenmem, \
         DISABLED_WARNINGS_CXX_gcc := format, \
+        DISABLED_WARNINGS_clang := format, \
         LIBS := $$($1_LIBS_$$(name)), \
         TOOLCHAIN := $(if $$(filter %.cpp, $$(file)), TOOLCHAIN_LINK_CXX, TOOLCHAIN_DEFAULT), \
         OPTIMIZATION := $$(if $$($1_OPTIMIZATION_$$(name)),$$($1_OPTIMIZATION_$$(name)),LOW), \
