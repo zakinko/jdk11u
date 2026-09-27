@@ -879,6 +879,31 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_CPU_DEP],
     fi
   fi
 
+  if test "x$FLAGS_OS" = xbsd && test "x$FLAGS_CPU_ARCH" = xppc &&
+      test "x$FLAGS_CPU_BITS" = x64; then
+    if test "x$TOOLCHAIN_TYPE" = xgcc || test "x$TOOLCHAIN_TYPE" = xclang; then
+      # FreeBSD has used ELFv2 on 64-bit PowerPC since 13.0, big endian
+      # as well as little, and OpenBSD has from the start.  The compiler
+      # emits it; say so to HotSpot, which otherwise builds the ELFv1
+      # function descriptor paths.  NetBSD is still ELFv1 there, which
+      # the port does not support, and os_bsd_ppc.hpp says so.  gcc has
+      # said it already for little endian, above.
+      case "$OPENJDK_$1_AUTOCONF_NAME" in
+        *netbsd*)
+          ;;
+        *)
+          case " ${$1_CFLAGS_CPU_JVM} " in
+            *" -DABI_ELFv2 "*)
+              ;;
+            *)
+              $1_CFLAGS_CPU_JVM="${$1_CFLAGS_CPU_JVM} -DABI_ELFv2"
+              ;;
+          esac
+          ;;
+      esac
+    fi
+  fi
+
   if test "x$TOOLCHAIN_TYPE" = xgcc; then
     FLAGS_SETUP_GCC6_COMPILER_FLAGS($1, $3)
     $1_TOOLCHAIN_CFLAGS="${$1_GCC6_CFLAGS}"
