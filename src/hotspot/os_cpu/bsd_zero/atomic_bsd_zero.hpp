@@ -159,6 +159,23 @@ static inline int arm_lock_test_and_set(int newval, volatile int *ptr) {
 }
 #endif // ARM
 
+// The 8-byte operations below go through an 8-byte aligned view of their
+// operand.  The i386 ABI aligns a 64-bit integer to four bytes, so clang
+// cannot assume a naturally aligned operand and refuses the __sync builtins
+// on it (-Wsync-alignment).  With the view it emits lock cmpxchg8b, which is
+// atomic at any alignment, as gcc does without being told.  Where the ABI
+// already aligns them to eight, as on 32-bit arm and on every 64-bit
+// machine, this changes nothing.
+template<typename T>
+struct BsdZeroAligned8 {
+  typedef T type __attribute__((aligned(8)));
+};
+
+template<typename T>
+inline typename BsdZeroAligned8<T>::type volatile* bsd_zero_aligned8(T volatile* p) {
+  return reinterpret_cast<typename BsdZeroAligned8<T>::type volatile*>(p);
+}
+
 template<size_t byte_size>
 struct Atomic::PlatformAdd
   : Atomic::AddAndFetch<Atomic::PlatformAdd<byte_size> >
@@ -192,7 +209,7 @@ inline D Atomic::PlatformAdd<8>::add_and_fetch(I add_value, D volatile* dest,
   STATIC_ASSERT(8 == sizeof(I));
   STATIC_ASSERT(8 == sizeof(D));
 
-  return __sync_add_and_fetch(dest, add_value);
+  return __sync_add_and_fetch(bsd_zero_aligned8(dest), add_value);
 }
 
 template<>
@@ -228,7 +245,7 @@ inline T Atomic::PlatformXchg<8>::operator()(T exchange_value,
                                              T volatile* dest,
                                              atomic_memory_order order) const {
   STATIC_ASSERT(8 == sizeof(T));
-  T result = __sync_lock_test_and_set (dest, exchange_value);
+  T result = __sync_lock_test_and_set (bsd_zero_aligned8(dest), exchange_value);
   __sync_synchronize();
   return result;
 }
@@ -262,7 +279,7 @@ inline T Atomic::PlatformCmpxchg<8>::operator()(T exchange_value,
                                                 T compare_value,
                                                 atomic_memory_order order) const {
   STATIC_ASSERT(8 == sizeof(T));
-  return __sync_val_compare_and_swap(dest, compare_value, exchange_value);
+  return __sync_val_compare_and_swap(bsd_zero_aligned8(dest), compare_value, exchange_value);
 }
 
 template<>
