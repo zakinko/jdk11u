@@ -341,6 +341,7 @@ ifeq ($(call isTargetOs, windows macosx), false)
             unused-result maybe-uninitialized format \
             format-security int-to-pointer-cast parentheses \
             implicit-fallthrough, \
+        DISABLED_WARNINGS_clang := pointer-to-int-cast format parentheses, \
         DISABLED_WARNINGS_solstudio := E_DECLARATION_IN_CODE \
             E_ASSIGNMENT_TYPE_MISMATCH E_NON_CONST_INIT, \
         LDFLAGS := $(LDFLAGS_JDKLIB) \
