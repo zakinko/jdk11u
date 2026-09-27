@@ -1285,7 +1285,7 @@ typedef PaddedEnd<ObjectMonitor>              PaddedObjectMonitor;
     declare_type(arrayOopDesc, oopDesc)                                   \
       declare_type(objArrayOopDesc, arrayOopDesc)                         \
     declare_type(instanceOopDesc, oopDesc)                                \
-    declare_type(markOopDesc, oopDesc)                                    \
+  declare_toplevel_type(markOopDesc)                                      \
                                                                           \
   /**************************************************/                    \
   /* MetadataOopDesc hierarchy (NOTE: some missing) */                    \

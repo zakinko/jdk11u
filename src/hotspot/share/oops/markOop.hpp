@@ -101,7 +101,7 @@ class BasicLock;
 class ObjectMonitor;
 class JavaThread;
 
-class markOopDesc: public oopDesc {
+class markOopDesc {
  private:
   // Conversion
   uintptr_t value() const { return (uintptr_t) this; }

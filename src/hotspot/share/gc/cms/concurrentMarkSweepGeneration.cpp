@@ -7868,8 +7868,8 @@ bool CMSCollector::par_take_from_overflow_list(size_t num,
     }
   } else {
     // Chop off the suffix and return it to the global list.
-    assert(cur->mark_raw() != BUSY, "Error");
-    oop suffix_head = cur->mark_raw(); // suffix will be put back on global list
+    assert((oop)cur->mark_raw() != BUSY, "Error");
+    oop suffix_head = (oop)cur->mark_raw(); // suffix will be put back on global list
     cur->set_mark_raw(NULL);           // break off suffix
     // It's possible that the list is still in the empty(busy) state
     // we left it in a short while ago; in that case we may be
