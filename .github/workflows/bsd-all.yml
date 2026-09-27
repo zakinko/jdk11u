@@ -130,30 +130,63 @@ jobs:
 
   # 11's get-jtreg builds jtreg in the test job itself, from a cache when it
   # can, so there is no preparation job for tier1 to wait for.
+
+  # Each machine is tested whether or not the others built.  One whose
+  # build failed would otherwise still get its eleven tier1 jobs, each
+  # waiting for a runner only to fail at fetching bundles that were never
+  # uploaded -- 66 of the 77 in one run, on a queue that is the slowest
+  # part of the loop.  So list this run's artifacts and keep the machines
+  # whose bundles are there.
+  built:
+    name: built
+    needs: [hotspot]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+    outputs:
+      machines: ${{ steps.pick.outputs.machines }}
+      any: ${{ steps.pick.outputs.any }}
+    steps:
+      - name: 'Pick the machines that built'
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALL: >-
+            [
+            {"os":"netbsd",   "arch":"",       "platform":"bsd-x86_64-netbsd",   "release":"10.1", "runner":"ubuntu-24.04"},
+            {"os":"freebsd",  "arch":"",       "platform":"bsd-x86_64-freebsd",  "release":"15.1", "runner":"ubuntu-24.04"},
+            {"os":"openbsd",  "arch":"",       "platform":"bsd-x86_64-openbsd",  "release":"7.9",  "runner":"ubuntu-24.04"},
+            {"os":"dragonfly","arch":"",       "platform":"bsd-x86_64-dragonfly","release":"6.4.2","runner":"ubuntu-24.04"},
+            {"os":"netbsd",   "arch":"aarch64","platform":"bsd-aarch64-netbsd",  "release":"10.1", "runner":"ubuntu-24.04-arm"},
+            {"os":"freebsd",  "arch":"aarch64","platform":"bsd-aarch64-freebsd", "release":"15.1", "runner":"ubuntu-24.04-arm"},
+            {"os":"openbsd",  "arch":"aarch64","platform":"bsd-aarch64-openbsd", "release":"7.9",  "runner":"ubuntu-24.04-arm"}]
+        run: |
+          gh api --paginate \
+            "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" \
+            --jq '.artifacts[].name' > names.txt
+          echo "artifacts of this run:"; sed 's/^/  /' names.txt
+          m=$(echo "$ALL" | jq -c --rawfile n names.txt \
+                '[.[] | select(("bundles-" + .platform) as $b
+                               | ($n | split("\n") | index($b)) != null)]')
+          echo "machines=$m" >> "$GITHUB_OUTPUT"
+          if [ "$m" = "[]" ]; then echo "any=false"; else echo "any=true"; fi >> "$GITHUB_OUTPUT"
+          echo "tier1 runs on: $m"
+
   # A guest whose machine differs from the runner's is emulated, so the
   # aarch64 ones go on an arm64 runner; that runner has no /dev/kvm either,
   # so they are emulated there too, only less so.
-  #
-  # Each machine is tested whether or not the others built: one that did not
-  # fails at fetching its bundles, and the rest are not held back by it.
   tier1:
     name: tier1
-    needs: [hotspot]
-    if: ${{ !cancelled() }}
+    needs: [built]
+    if: ${{ !cancelled() && needs.built.outputs.any == 'true' }}
     concurrency:
       group: bsd-tier1-${{ github.ref }}-${{ matrix.platform }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {os: netbsd,    arch: '',        platform: bsd-x86_64-netbsd,     release: '10.1',  runner: ubuntu-24.04}
-          - {os: freebsd,   arch: '',        platform: bsd-x86_64-freebsd,    release: '15.1',  runner: ubuntu-24.04}
-          - {os: openbsd,   arch: '',        platform: bsd-x86_64-openbsd,    release: '7.9',   runner: ubuntu-24.04}
-          - {os: dragonfly, arch: '',        platform: bsd-x86_64-dragonfly,  release: '6.4.2', runner: ubuntu-24.04}
-          - {os: netbsd,    arch: 'aarch64', platform: bsd-aarch64-netbsd,    release: '10.1',  runner: ubuntu-24.04-arm}
-          - {os: freebsd,   arch: 'aarch64', platform: bsd-aarch64-freebsd,   release: '15.1',  runner: ubuntu-24.04-arm}
-          - {os: openbsd,   arch: 'aarch64', platform: bsd-aarch64-openbsd,   release: '7.9',   runner: ubuntu-24.04-arm}
+        include: ${{ fromJSON(needs.built.outputs.machines) }}
     uses: ./.github/workflows/test-bsd.yml
     with:
       target-os: ${{ matrix.os }}
