@@ -98,66 +98,6 @@ static inline int m68k_lock_test_and_set(int newval, volatile int *ptr) {
 }
 #endif // M68K
 
-#ifdef ARM
-
-/*
- * __kernel_cmpxchg
- *
- * Atomically store newval in *ptr if *ptr is equal to oldval for user space.
- * Return zero if *ptr was changed or non-zero if no exchange happened.
- * The C flag is also set if *ptr was changed to allow for assembly
- * optimization in the calling code.
- *
- */
-
-typedef int (__kernel_cmpxchg_t)(int oldval, int newval, volatile int *ptr);
-#define __kernel_cmpxchg (*(__kernel_cmpxchg_t *) 0xffff0fc0)
-
-
-
-/* Perform an atomic compare and swap: if the current value of `*PTR'
-   is OLDVAL, then write NEWVAL into `*PTR'.  Return the contents of
-   `*PTR' before the operation.*/
-static inline int arm_compare_and_swap(int newval,
-                                       volatile int *ptr,
-                                       int oldval) {
-  for (;;) {
-      int prev = *ptr;
-      if (prev != oldval)
-        return prev;
-
-      if (__kernel_cmpxchg (prev, newval, ptr) == 0)
-        // Success.
-        return prev;
-
-      // We failed even though prev == oldval.  Try again.
-    }
-}
-
-/* Atomically add an int to memory.  */
-static inline int arm_add_and_fetch(int add_value, volatile int *ptr) {
-  for (;;) {
-      // Loop until a __kernel_cmpxchg succeeds.
-
-      int prev = *ptr;
-
-      if (__kernel_cmpxchg (prev, prev + add_value, ptr) == 0)
-        return prev + add_value;
-    }
-}
-
-/* Atomically write VALUE into `*PTR' and returns the previous
-   contents of `*PTR'.  */
-static inline int arm_lock_test_and_set(int newval, volatile int *ptr) {
-  for (;;) {
-      // Loop until a __kernel_cmpxchg succeeds.
-      int prev = *ptr;
-
-      if (__kernel_cmpxchg (prev, newval, ptr) == 0)
-        return prev;
-    }
-}
-#endif // ARM
 
 // The 8-byte operations below go through an 8-byte aligned view of their
 // operand.  The i386 ABI aligns a 64-bit integer to four bytes, so clang
@@ -191,15 +131,11 @@ inline D Atomic::PlatformAdd<4>::add_and_fetch(I add_value, D volatile* dest,
   STATIC_ASSERT(4 == sizeof(I));
   STATIC_ASSERT(4 == sizeof(D));
 
-#ifdef ARM
-  return add_using_helper<int>(arm_add_and_fetch, add_value, dest);
-#else
 #ifdef M68K
   return add_using_helper<int>(m68k_add_and_fetch, add_value, dest);
 #else
   return __sync_add_and_fetch(dest, add_value);
 #endif // M68K
-#endif // ARM
 }
 
 template<>
@@ -218,9 +154,6 @@ inline T Atomic::PlatformXchg<4>::operator()(T exchange_value,
                                              T volatile* dest,
                                              atomic_memory_order order) const {
   STATIC_ASSERT(4 == sizeof(T));
-#ifdef ARM
-  return xchg_using_helper<int>(arm_lock_test_and_set, exchange_value, dest);
-#else
 #ifdef M68K
   return xchg_using_helper<int>(m68k_lock_test_and_set, exchange_value, dest);
 #else
@@ -236,7 +169,6 @@ inline T Atomic::PlatformXchg<4>::operator()(T exchange_value,
   __sync_synchronize();
   return result;
 #endif // M68K
-#endif // ARM
 }
 
 template<>
@@ -261,15 +193,11 @@ inline T Atomic::PlatformCmpxchg<4>::operator()(T exchange_value,
                                                 T compare_value,
                                                 atomic_memory_order order) const {
   STATIC_ASSERT(4 == sizeof(T));
-#ifdef ARM
-  return cmpxchg_using_helper<int>(arm_compare_and_swap, exchange_value, dest, compare_value);
-#else
 #ifdef M68K
   return cmpxchg_using_helper<int>(m68k_compare_and_swap, exchange_value, dest, compare_value);
 #else
   return __sync_val_compare_and_swap(dest, compare_value, exchange_value);
 #endif // M68K
-#endif // ARM
 }
 
 template<>
