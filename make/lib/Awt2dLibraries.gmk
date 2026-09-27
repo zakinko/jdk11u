@@ -855,7 +855,9 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
   LIBSPLASHSCREEN_CFLAGS += -DSPLASHSCREEN -DPNG_NO_MMX_CODE \
                             -DPNG_ARM_NEON_OPT=0 -DPNG_ARM_NEON_IMPLEMENTATION=0
 
-  ifeq ($(call isTargetOs, linux), true)
+  # The bundled libpng lacks the VSX filter sources, which pngpriv.h asks
+  # for whenever the compiler targets VSX, as it does for ppc64le.
+  ifeq ($(call isTargetOs, linux bsd), true)
     ifeq ($(call isTargetCpuArch, ppc), true)
       LIBSPLASHSCREEN_CFLAGS += -DPNG_POWERPC_VSX_OPT=0
     endif
