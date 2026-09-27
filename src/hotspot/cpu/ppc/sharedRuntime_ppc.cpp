@@ -47,7 +47,10 @@
 #include "opto/runtime.hpp"
 #endif
 
+// The BSDs declare alloca() in <stdlib.h> and have no <alloca.h>.
+#ifndef _ALLBSD_SOURCE
 #include <alloca.h>
+#endif
 
 #define __ masm->
 
@@ -842,9 +845,9 @@ int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
     // in farg_reg[j] if argument i is the j-th float argument of this call.
     //
     case T_FLOAT:
-#if defined(LINUX)
-      // Linux uses ELF ABI. Both original ELF and ELFv2 ABIs have float
-      // in the least significant word of an argument slot.
+#if defined(LINUX) || defined(_ALLBSD_SOURCE)
+      // Linux and the BSDs use the ELF ABI. Both original ELF and ELFv2
+      // ABIs have float in the least significant word of an argument slot.
 #if defined(VM_LITTLE_ENDIAN)
 #define FLOAT_WORD_OFFSET_IN_SLOT 0
 #else

@@ -284,9 +284,9 @@ address TemplateInterpreterGenerator::generate_slow_signature_handler() {
 
   __ bind(do_float);
   __ lfs(floatSlot, 0, arg_java);
-#if defined(LINUX)
-  // Linux uses ELF ABI. Both original ELF and ELFv2 ABIs have float
-  // in the least significant word of an argument slot.
+#if defined(LINUX) || defined(_ALLBSD_SOURCE)
+  // Linux and the BSDs use the ELF ABI. Both original ELF and ELFv2 ABIs
+  // have float in the least significant word of an argument slot.
 #if defined(VM_LITTLE_ENDIAN)
   __ stfs(floatSlot, 0, arg_c);
 #else
