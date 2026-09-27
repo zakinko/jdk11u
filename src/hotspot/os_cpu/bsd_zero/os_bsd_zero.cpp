@@ -243,12 +243,8 @@ JVM_handle_bsd_signal(int sig,
   }
 #endif // !PRODUCT
 
-  const char *fmt =
-      "caught unhandled signal " INT32_FORMAT " at address " PTR_FORMAT;
-  char buf[128];
-
-  sprintf(buf, fmt, sig, info->si_addr);
-  fatal(buf);
+  fatal("caught unhandled signal " INT32_FORMAT " at address " PTR_FORMAT,
+        sig, p2i(info->si_addr));
   return false;
 }
 
