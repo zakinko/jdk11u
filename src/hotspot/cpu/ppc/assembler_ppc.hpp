@@ -941,6 +941,15 @@ class Assembler : public AbstractAssembler {
     return (julong)x < maxplus1;
   }
 
+#if defined(_LP64) && defined(__OpenBSD__)
+  // jlong is int64_t, which OpenBSD spells long long (see jni_md.h), so a
+  // long there -- an intptr_t, an intx, a pointer difference -- is no
+  // nearer the jlong overloads than the int ones and the call is
+  // ambiguous.  Offer long as well.
+  static bool is_simm(long x, unsigned int nbits) { return is_simm((jlong)x, nbits); }
+  static bool is_uimm(long x, unsigned int nbits) { return is_uimm((jlong)x, nbits); }
+#endif
+
  protected:
   // helpers
 
