@@ -162,6 +162,20 @@ W
     # package, and whatever links against libjvm has to find it again.
     common_extra="-isystem $sysroot/usr/local/include -L$sysroot/usr/local/lib \
         -Wl,-rpath-link=$sysroot/usr/local/lib"
+    # Upstream clang cannot emit OpenBSD's stack protector on 32- or 64-bit
+    # arm: every function that gets a canary -- any with a local array, at
+    # any optimisation level -- crashes it in the 'Post-RA pseudo instruction
+    # expansion pass' where the guard load against __guard_local is
+    # expanded.  OpenBSD's own clang carries the patches that make it work.
+    # Measured with Ubuntu's clang 18.1.3 on a two-line function for
+    # aarch64- and armv7-unknown-openbsd7.9 (x86_64 and every NetBSD target
+    # compile it), and the same pass is where clang 20 stopped on libjvm.
+    # The option goes after the build's own flags so that it is the one
+    # that counts; it costs these cross-built binaries their canaries, and
+    # nothing else.
+    case "${triple%%-*}" in
+      aarch64|armv7) late_extra="-fno-stack-protector" ;;
+    esac
     ;;
   *)
     cxx_extra=""
@@ -170,6 +184,7 @@ W
     ;;
 esac
 : "${common_extra:=}"
+: "${late_extra:=}"
 : "${ld_path:=}"
 if [ -n "$ld_path" ]; then ld_flag="--ld-path=$ld_path"; else ld_flag="-fuse-ld=lld"; fi
 
@@ -186,7 +201,7 @@ for tool in clang clang++; do
 exec /usr/bin/$tool$llvm_suffix --target=$triple --sysroot=$sysroot \\
   -Wno-unused-command-line-argument \\
   $rt_extra $ld_flag $common_extra $extra \\
-  -include $fixups "\$@" $link_extra
+  -include $fixups "\$@" $late_extra $link_extra
 W
   chmod +x "$bindir/$triple-$tool"
 done
