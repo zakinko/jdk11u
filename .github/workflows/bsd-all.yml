@@ -2,10 +2,10 @@
 # Cross-build every BSD on every machine this tree can target, then run
 # tier1 on each BSD and machine a virtual machine can be booted for.
 #
-# x86_64 and aarch64 have HotSpot ports on the BSDs in 11; i386, sparc64,
-# armv7 and riscv64 do not, and are built as Zero, which calls through
-# libffi from the OS's packages.  64-bit PowerPC has a BSD port in 21 and
-# 28 but not here yet: 11 has no os_cpu/bsd_ppc.  DragonFly is x86_64 only.  NetBSD builds against
+# x86_64, aarch64 and 64-bit PowerPC (FreeBSD and OpenBSD, which use the
+# ELFv2 ABI there; NetBSD's is ELFv1) have HotSpot ports on the BSDs; i386,
+# sparc64, armv7 and riscv64 do not, and are built as Zero, which calls
+# through libffi from the OS's packages.  DragonFly is x86_64 only.  NetBSD builds against
 # 10.1 but for riscv64, whose first release is 11.0; the reasons are in
 # gen-bsd-sysroot.sh.  NetBSD is also built once with the desktop modules,
 # which pull in X11 and are otherwise left out.
@@ -58,7 +58,17 @@ jobs:
           {"target-os":"openbsd","arch":"aarch64",
            "target-triple":"aarch64-unknown-openbsd7.9",
            "conf-name":"bsd-aarch64-openbsd",
-           "llvm-suffix":"-19"}]}
+           "llvm-suffix":"-19"},
+          {"target-os":"freebsd","arch":"powerpc64",
+           "target-triple":"powerpc64-unknown-freebsd15.1",
+           "conf-name":"bsd-powerpc64-freebsd"},
+          {"target-os":"freebsd","arch":"powerpc64le",
+           "target-triple":"powerpc64le-unknown-freebsd15.1",
+           "conf-name":"bsd-powerpc64le-freebsd"},
+          {"target-os":"openbsd","arch":"powerpc64",
+           "target-triple":"powerpc64-unknown-openbsd7.9",
+           "conf-name":"bsd-powerpc64-openbsd",
+           "llvm-suffix":"-20"}]}
 
   zero:
     name: zero
