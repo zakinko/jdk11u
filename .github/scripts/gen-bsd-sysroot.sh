@@ -96,7 +96,10 @@ case "$os" in
       *) unsupported ;;
     esac
     base=https://cdn.netbsd.org/pub/NetBSD/NetBSD-$netbsd_release/$port/binary/sets
-    for set in base comp; do
+    # NetBSD is the one BSD here that ships X11 as ordinary sets, so a
+    # headful build can be cross-compiled for it.  They cost about 20MB
+    # and a headless build simply does not look at them.
+    for set in base comp xbase xcomp; do
       fetch "$set.$ext" "$base/$set.$ext"
       extract "$set.$ext"
     done
@@ -106,7 +109,19 @@ case "$os" in
     case "$arch" in
       i386|sparc64|armv7|riscv64)
         pkgs=https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$pkgarch/$netbsd_release/All
-        fetch libffi.tgz "$pkgs/libffi-3.5.2.tgz"
+        # Take the name from the index rather than fixing a version: the
+        # mirrors move to a new quarterly one machine at a time, and on
+        # 2026-09-27 i386 and x86_64 had libffi-3.8.0 while the rest still
+        # had 3.5.2.  Anchor on href=, or the pattern matches the middle of
+        # other package names.  The index is a redirect, hence -L.
+        ffi=$(curl -fsSL --retry 3 --max-time 300 "$pkgs/" |
+            grep -oE 'href="libffi-[0-9][^"]*[.]tgz"' |
+            sed 's/^href="//; s/"$//' | sort -uV | tail -1)
+        if [ -z "$ffi" ]; then
+          echo "no libffi under $pkgs" >&2
+          exit 1
+        fi
+        fetch libffi.tgz "$pkgs/$ffi"
         sudo mkdir -p "$sysroot/usr/pkg"
         echo "extracting libffi.tgz into usr/pkg"
         sudo tar xf libffi.tgz -C "$sysroot/usr/pkg" include lib
@@ -196,10 +211,11 @@ esac
 sudo chown -R "$USER" "$sysroot"
 
 
-# No BSD carries X11 in its base system either -- NetBSD and OpenBSD ship it
-# as separate sets, the others leave it to ports -- so the build is configured
-# headless and none of it is fetched.  What that gives up is the X11 half of
-# java.desktop; everything else, hotspot included, still gets compiled.
+# No BSD carries X11 in its base system: NetBSD and OpenBSD ship it as
+# separate sets and the others leave it to ports.  NetBSD's are fetched
+# above, so a headful build is possible there; everywhere else the build is
+# configured headless, which gives up the X11 half of java.desktop and
+# nothing else -- hotspot included, all of it still gets compiled.
 #
 # Neither cups nor fontconfig is part of any BSD base system, and the JDK
 # needs their headers alone: both are opened with dlopen at run time.  The
@@ -244,7 +260,7 @@ done
 #
 # because the archive is not built PIC.  Make the symlinks lld expects.
 for dir in "$sysroot"/usr/lib "$sysroot"/lib "$sysroot"/usr/pkg/lib \
-           "$sysroot"/usr/local/lib; do
+           "$sysroot"/usr/local/lib "$sysroot"/usr/X11R7/lib; do
   [ -d "$dir" ] || continue
   for so in "$dir"/lib*.so.*; do
     [ -e "$so" ] || continue

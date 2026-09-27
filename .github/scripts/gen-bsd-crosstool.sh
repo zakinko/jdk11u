@@ -98,6 +98,40 @@ case "$os" in
       echo "$0: no GNU ld for $gnu; install binutils-$gnu" >&2
       exit 1
     fi
+    # clang asks for NetBSD's own emulation on 32-bit arm, and Debian's ld
+    # was built with only the Linux ones, so it stops at
+    #   unrecognised emulation mode: armelf_nbsd_eabihf
+    # before reading an object.  The two differ in the default linker
+    # script, and clang names the dynamic linker, the crt files and the
+    # libraries itself, so the Linux emulation links the same thing.  The
+    # other machines are asked for generic emulations that Debian has.
+    # A long link line -- libjvm's -- reaches ld as a response file, so
+    # the name is rewritten inside those too.
+    if [ "$gnu" = arm-linux-gnueabihf ]; then
+      cat > "$bindir/$triple-ld" <<W
+#!/bin/sh
+tmp=\$(mktemp -d)
+trap 'rm -rf "\$tmp"' EXIT
+n=0
+for a; do
+  shift
+  case "\$a" in
+    armelf_nbsd_eabihf) a=armelf_linux_eabi ;;
+    @*)
+      if [ -f "\${a#@}" ]; then
+        n=\$((n + 1))
+        sed 's/armelf_nbsd_eabihf/armelf_linux_eabi/g' "\${a#@}" > "\$tmp/\$n"
+        a="@\$tmp/\$n"
+      fi
+      ;;
+  esac
+  set -- "\$@" "\$a"
+done
+$ld_path "\$@"
+W
+      chmod +x "$bindir/$triple-ld"
+      ld_path="$bindir/$triple-ld"
+    fi
     # The Zero targets call through libffi, which NetBSD ships in pkgsrc,
     # so it lands under usr/pkg rather than usr/lib.  Anything that links
     # against libjvm has to be able to find it a second time -- the gtest
@@ -165,6 +199,26 @@ for tool in ar ranlib strip objcopy nm objdump; do
   printf '#!/bin/sh\nexec /usr/bin/llvm-%s%s "$@"\n' "$tool" "$llvm_suffix" > "$bindir/$triple-$tool"
   chmod +x "$bindir/$triple-$tool"
 done
+
+# 32-bit arm C++ calls __cxa_end_cleanup from every cleanup landing pad,
+# and NetBSD's test launcher NullCallerTest stopped at it as undefined.
+# Say which library in the sysroot defines it, so the link can name that
+# one.  Informational only.
+case "$triple" in
+  armv7-*netbsd*)
+    echo "--- who defines __cxa_end_cleanup ---"
+    for f in "$sysroot"/usr/lib/libstdc++.* "$sysroot"/usr/lib/libsupc++.* \
+             "$sysroot"/usr/lib/libgcc* "$sysroot"/usr/lib/libunwind* \
+             "$sysroot"/usr/lib/libc++abi* "$sysroot"/usr/lib/libc.so*; do
+      [ -f "$f" ] || continue
+      if llvm-nm$llvm_suffix -g --defined-only "$f" 2>/dev/null |
+          grep -q ' __cxa_end_cleanup$'; then
+        echo "  defined in ${f#$sysroot}"
+      fi
+    done
+    echo "--- end ---"
+    ;;
+esac
 
 # Prove the wrapper links before configure spends ten minutes finding out.
 tmp=$(mktemp -d)
