@@ -650,7 +650,7 @@ cleanup:
 }
 
 #ifndef HEADLESS
-#if defined(__linux__) || defined(MACOSX) || defined(_AIX)
+#if defined(__linux__) || defined(_ALLBSD_SOURCE) || defined(_AIX)
 static void xinerama_init_linux()
 {
     void* libHandle = NULL;
