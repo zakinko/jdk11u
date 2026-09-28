@@ -170,10 +170,16 @@ else
     OPENJDK_TARGET_OS := macosx
   else ifeq ($(UNAME_OS), SunOS)
     OPENJDK_TARGET_OS := solaris
+  else ifneq ($(filter FreeBSD NetBSD OpenBSD DragonFly, $(UNAME_OS)), )
+    OPENJDK_TARGET_OS := bsd
   else
     OPENJDK_TARGET_OS := $(UNAME_OS)
   endif
   OPENJDK_TARGET_OS_ENV := $(OPENJDK_TARGET_OS)
+  ifeq ($(OPENJDK_TARGET_OS), bsd)
+    # As configure spells it: bsd.freebsd, bsd.netbsd, ...
+    OPENJDK_TARGET_OS_ENV := bsd.$(shell echo $(UNAME_OS) | tr A-Z a-z)
+  endif
 endif
 
 # Sanity check env detection
@@ -192,6 +198,17 @@ ifeq ($(OPENJDK_TARGET_OS), solaris)
   else ifeq ($(UNAME_CPU), sparc)
     OPENJDK_TARGET_CPU := sparcv9
     OPENJDK_TARGET_CPU_ENDIAN := big
+  else
+    OPENJDK_TARGET_CPU := $(UNAME_CPU)
+  endif
+else ifeq ($(OPENJDK_TARGET_OS), bsd)
+  # uname -m is the machine's port name on the BSDs -- amd64, arm64, evbarm --
+  # and uname -p the processor; aarch64 is spelled aarch64 there, and amd64
+  # is what configure calls x86_64.
+  UNAME_CPU := $(shell $(UNAME) -p)
+  OPENJDK_TARGET_CPU_BITS := 64
+  ifeq ($(UNAME_CPU), amd64)
+    OPENJDK_TARGET_CPU := x86_64
   else
     OPENJDK_TARGET_CPU := $(UNAME_CPU)
   endif
@@ -228,6 +245,14 @@ ifeq ($(OPENJDK_TARGET_OS), linux)
   MEMORY_SIZE := $(shell \
       $(EXPR) `$(CAT) /proc/meminfo | $(GREP) MemTotal | $(AWK) '{print $$2}'` / 1024 \
   )
+else ifeq ($(OPENJDK_TARGET_OS), bsd)
+  # hw.physmem is the size in bytes on all four; NetBSD's is capped at
+  # 2^31-1, so it has hw.physmem64 as well.
+  SYSCTL ?= /sbin/sysctl
+  NUM_CORES := $(shell $(SYSCTL) -n hw.ncpu 2> /dev/null)
+  MEMORY_SIZE := $(shell m=`$(SYSCTL) -n hw.physmem64 2> /dev/null \
+      || $(SYSCTL) -n hw.physmem 2> /dev/null`; \
+      [ -n "$$m" ] && $(EXPR) $$m / 1024 / 1024)
 else ifeq ($(OPENJDK_TARGET_OS), macosx)
   NUM_CORES := $(shell /usr/sbin/sysctl -n hw.ncpu)
   MEMORY_SIZE := $(shell $(EXPR) `/usr/sbin/sysctl -n hw.memsize` / 1024 / 1024)
