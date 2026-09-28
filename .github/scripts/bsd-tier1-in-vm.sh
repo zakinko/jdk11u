@@ -148,7 +148,7 @@ gmake run-test-prebuilt $gnu \
   JT_HOME="$JT" \
   JDK_IMAGE_DIR="$JDK" \
   TEST_IMAGE_DIR="$TESTS" \
-  JTREG='JAVA_OPTIONS=-XX:-CreateCoredumpOnCrash;VERBOSE=fail,error,time;KEYWORDS=!headful'
+  JTREG="JAVA_OPTIONS=-XX:-CreateCoredumpOnCrash;VERBOSE=fail,error,time;KEYWORDS=!headful;TIMEOUT_FACTOR=${TIMEOUT_FACTOR:-4}"
 
 # make run-test-prebuilt prints "TEST FAILURE" and then returns 0: it reports
 # the failure as build/run-test-prebuilt/make-support/exit-with-error.
@@ -160,6 +160,20 @@ if [ -f $R/make-support/exit-with-error ]; then
   cat $R/test-results/*/text/newfailures.txt 2>/dev/null || :
   echo "--- tests that errored ---"
   cat $R/test-results/*/text/other_errors.txt 2>/dev/null || :
+  # Why each one failed, at the very end of the log: the log is read from
+  # its tail, and a part's own output runs to more lines than can be
+  # fetched, so the reason would otherwise be out of reach.
+  cat $R/test-results/*/text/newfailures.txt \
+      $R/test-results/*/text/other_errors.txt 2>/dev/null |
+    grep -v '^#' | sed 's/[#].*//' | sort -u | head -40 |
+    while read t; do
+      [ -n "$t" ] || continue
+      jtr=`find $R/test-support -path "*/${t%.*}*.jtr" 2>/dev/null | head -1`
+      [ -n "$jtr" ] || continue
+      echo "--- $t ---"
+      grep -E 'Exception|Error|FAILED|failed|expected|timed out|^TEST RESULT' "$jtr" |
+        grep -v '^[[:space:]]*at ' | head -15
+    done
   echo "--- end ---"
 fi
 exit 0
