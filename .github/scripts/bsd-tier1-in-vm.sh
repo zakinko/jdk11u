@@ -142,7 +142,7 @@ gnu=""
 if command -v gsed >/dev/null 2>&1; then gnu="$gnu SED=`command -v gsed`"; fi
 if command -v ggrep >/dev/null 2>&1; then gnu="$gnu GREP=`command -v ggrep`"; fi
 
-gmake test-prebuilt $gnu \
+gmake run-test-prebuilt $gnu \
   TEST="$suite" \
   BOOT_JDK="$JDK" \
   JT_HOME="$JT" \
@@ -150,7 +150,7 @@ gmake test-prebuilt $gnu \
   TEST_IMAGE_DIR="$TESTS" \
   JTREG='JAVA_OPTIONS=-XX:-CreateCoredumpOnCrash;VERBOSE=fail,error,time;KEYWORDS=!headful'
 
-# make test-prebuilt prints "TEST FAILURE" and then returns 0: it reports
+# make run-test-prebuilt prints "TEST FAILURE" and then returns 0: it reports
 # the failure as build/run-test-prebuilt/make-support/exit-with-error.
 # Name what failed here, where the log is read; the verdict is passed on
 # the runner.
