@@ -41,6 +41,18 @@ on:
         required: false
         type: string
         default: ''
+      hotspot-only:
+        description: >-
+          Run only hs/tier1 common, compiler parts 1-3, gc and runtime.  For
+          the emulated aarch64 guests: the arm64 runners have no /dev/kvm,
+          and there the library parts -- jdk/tier1 parts 1-2 and langtools
+          -- ran past the six-hour limit on 21 (run 36011130579), while the
+          same library tests are measured on x86_64.  serviceability is
+          left out too: the BSD build has no SA outside x86_64, so it would
+          skip most of it.
+        required: false
+        type: boolean
+        default: false
       timeout-factor:
         description: "jtreg's TIMEOUT_FACTOR; an emulated guest needs more"
         required: false
@@ -57,70 +69,16 @@ jobs:
     name: test
     runs-on: ${{ inputs.runner }}
 
+    # The groups upstream's test.yml uses, with hs compiler split in three
+    # as later releases do, so that a part failing here can be compared with
+    # the same part on Linux.  jaxp is not among them: its tier1 selects no
+    # tests.  With hotspot-only, just the six HotSpot groups that measure
+    # the JIT and the runtime; see the input.  A plain include list, so
+    # nothing left out can come back as a combination of its own.
     strategy:
       fail-fast: false
       matrix:
-        test-name:
-          - 'jdk/tier1 part 1'
-          - 'jdk/tier1 part 2'
-          - 'jdk/tier1 part 3'
-          - 'langtools/tier1'
-          - 'hs/tier1 common'
-          - 'hs/tier1 compiler part 1'
-          - 'hs/tier1 compiler part 2'
-          - 'hs/tier1 compiler part 3'
-          - 'hs/tier1 gc'
-          - 'hs/tier1 runtime'
-          - 'hs/tier1 serviceability'
-
-        # The groups upstream's test.yml uses, with hs compiler split in
-        # three as later releases do, so that a part failing here can be
-        # compared with the same part on Linux.  jaxp is not among them: its
-        # tier1 selects no tests.
-        include:
-          - test-name: 'jdk/tier1 part 1'
-            test-suite: 'test/jdk/:tier1_part1'
-            test-slug: 'jdk-part1'
-
-          - test-name: 'jdk/tier1 part 2'
-            test-suite: 'test/jdk/:tier1_part2'
-            test-slug: 'jdk-part2'
-
-          - test-name: 'jdk/tier1 part 3'
-            test-suite: 'test/jdk/:tier1_part3'
-            test-slug: 'jdk-part3'
-
-          - test-name: 'langtools/tier1'
-            test-suite: 'test/langtools/:tier1'
-            test-slug: 'langtools'
-
-          - test-name: 'hs/tier1 common'
-            test-suite: 'test/hotspot/jtreg/:tier1_common'
-            test-slug: 'hs-common'
-
-          - test-name: 'hs/tier1 compiler part 1'
-            test-suite: 'test/hotspot/jtreg/:tier1_compiler_1'
-            test-slug: 'hs-compiler1'
-
-          - test-name: 'hs/tier1 compiler part 2'
-            test-suite: 'test/hotspot/jtreg/:tier1_compiler_2'
-            test-slug: 'hs-compiler2'
-
-          - test-name: 'hs/tier1 compiler part 3'
-            test-suite: 'test/hotspot/jtreg/:tier1_compiler_3'
-            test-slug: 'hs-compiler3'
-
-          - test-name: 'hs/tier1 gc'
-            test-suite: 'test/hotspot/jtreg/:tier1_gc'
-            test-slug: 'hs-gc'
-
-          - test-name: 'hs/tier1 runtime'
-            test-suite: 'test/hotspot/jtreg/:tier1_runtime'
-            test-slug: 'hs-runtime'
-
-          - test-name: 'hs/tier1 serviceability'
-            test-suite: 'test/hotspot/jtreg/:tier1_serviceability'
-            test-slug: 'hs-serviceability'
+        include: ${{ fromJSON(inputs.hotspot-only && '[{"test-name":"hs/tier1 common","test-suite":"test/hotspot/jtreg/:tier1_common","test-slug":"hs-common"},{"test-name":"hs/tier1 compiler part 1","test-suite":"test/hotspot/jtreg/:tier1_compiler_1","test-slug":"hs-compiler1"},{"test-name":"hs/tier1 compiler part 2","test-suite":"test/hotspot/jtreg/:tier1_compiler_2","test-slug":"hs-compiler2"},{"test-name":"hs/tier1 compiler part 3","test-suite":"test/hotspot/jtreg/:tier1_compiler_3","test-slug":"hs-compiler3"},{"test-name":"hs/tier1 gc","test-suite":"test/hotspot/jtreg/:tier1_gc","test-slug":"hs-gc"},{"test-name":"hs/tier1 runtime","test-suite":"test/hotspot/jtreg/:tier1_runtime","test-slug":"hs-runtime"}]' || '[{"test-name":"jdk/tier1 part 1","test-suite":"test/jdk/:tier1_part1","test-slug":"jdk-part1"},{"test-name":"jdk/tier1 part 2","test-suite":"test/jdk/:tier1_part2","test-slug":"jdk-part2"},{"test-name":"jdk/tier1 part 3","test-suite":"test/jdk/:tier1_part3","test-slug":"jdk-part3"},{"test-name":"langtools/tier1","test-suite":"test/langtools/:tier1","test-slug":"langtools"},{"test-name":"hs/tier1 common","test-suite":"test/hotspot/jtreg/:tier1_common","test-slug":"hs-common"},{"test-name":"hs/tier1 compiler part 1","test-suite":"test/hotspot/jtreg/:tier1_compiler_1","test-slug":"hs-compiler1"},{"test-name":"hs/tier1 compiler part 2","test-suite":"test/hotspot/jtreg/:tier1_compiler_2","test-slug":"hs-compiler2"},{"test-name":"hs/tier1 compiler part 3","test-suite":"test/hotspot/jtreg/:tier1_compiler_3","test-slug":"hs-compiler3"},{"test-name":"hs/tier1 gc","test-suite":"test/hotspot/jtreg/:tier1_gc","test-slug":"hs-gc"},{"test-name":"hs/tier1 runtime","test-suite":"test/hotspot/jtreg/:tier1_runtime","test-slug":"hs-runtime"},{"test-name":"hs/tier1 serviceability","test-suite":"test/hotspot/jtreg/:tier1_serviceability","test-slug":"hs-serviceability"}]') }}
 
     steps:
       - name: 'Checkout the JDK source'

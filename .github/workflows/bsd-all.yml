@@ -156,13 +156,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ALL: >-
             [
-            {"os":"netbsd",   "arch":"",       "platform":"bsd-x86_64-netbsd",   "release":"10.1", "runner":"ubuntu-24.04", "timeout-factor":"4"},
-            {"os":"freebsd",  "arch":"",       "platform":"bsd-x86_64-freebsd",  "release":"15.1", "runner":"ubuntu-24.04", "timeout-factor":"4"},
-            {"os":"openbsd",  "arch":"",       "platform":"bsd-x86_64-openbsd",  "release":"7.9",  "runner":"ubuntu-24.04", "timeout-factor":"4"},
-            {"os":"dragonfly","arch":"",       "platform":"bsd-x86_64-dragonfly","release":"6.4.2","runner":"ubuntu-24.04", "timeout-factor":"4"},
-            {"os":"netbsd",   "arch":"aarch64","platform":"bsd-aarch64-netbsd",  "release":"10.1", "runner":"ubuntu-24.04-arm", "timeout-factor":"12"},
-            {"os":"freebsd",  "arch":"aarch64","platform":"bsd-aarch64-freebsd", "release":"15.1", "runner":"ubuntu-24.04-arm", "timeout-factor":"12"},
-            {"os":"openbsd",  "arch":"aarch64","platform":"bsd-aarch64-openbsd", "release":"7.9",  "runner":"ubuntu-24.04-arm", "timeout-factor":"12"}]
+            {"os":"netbsd",   "arch":"",       "platform":"bsd-x86_64-netbsd",   "release":"10.1", "runner":"ubuntu-24.04", "timeout-factor":"4", "hotspot-only":false},
+            {"os":"freebsd",  "arch":"",       "platform":"bsd-x86_64-freebsd",  "release":"15.1", "runner":"ubuntu-24.04", "timeout-factor":"4", "hotspot-only":false},
+            {"os":"openbsd",  "arch":"",       "platform":"bsd-x86_64-openbsd",  "release":"7.9",  "runner":"ubuntu-24.04", "timeout-factor":"4", "hotspot-only":false},
+            {"os":"dragonfly","arch":"",       "platform":"bsd-x86_64-dragonfly","release":"6.4.2","runner":"ubuntu-24.04", "timeout-factor":"4", "hotspot-only":false},
+            {"os":"netbsd",   "arch":"aarch64","platform":"bsd-aarch64-netbsd",  "release":"10.1", "runner":"ubuntu-24.04-arm", "timeout-factor":"12", "hotspot-only":true},
+            {"os":"freebsd",  "arch":"aarch64","platform":"bsd-aarch64-freebsd", "release":"15.1", "runner":"ubuntu-24.04-arm", "timeout-factor":"12", "hotspot-only":true},
+            {"os":"openbsd",  "arch":"aarch64","platform":"bsd-aarch64-openbsd", "release":"7.9",  "runner":"ubuntu-24.04-arm", "timeout-factor":"12", "hotspot-only":true}]
         run: |
           gh api --paginate \
             "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" \
@@ -197,3 +197,4 @@ jobs:
       runner: ${{ matrix.runner }}
       release: ${{ matrix.release }}
       timeout-factor: ${{ matrix.timeout-factor }}
+      hotspot-only: ${{ matrix.hotspot-only }}
