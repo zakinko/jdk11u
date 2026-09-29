@@ -90,8 +90,19 @@ extern int assert_failed(const char*);
 #define U_NEW(T, n)  (T*) u->calloc(n, sizeof(T))
 #define T_NEW(T, n)  (T*) u->temp_calloc(n, sizeof(T))
 
-// Dealing with big-endian arch
-#ifdef _BIG_ENDIAN
+// Dealing with big-endian arch.  The build defines _BIG_ENDIAN for a
+// big-endian target, but the BSDs' <sys/endian.h> defines it on every
+// machine, as the constant 4321 that _BYTE_ORDER is compared with, so it
+// cannot be tested for on its own.  Ask the compiler where it can say.
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define UNPACK_BIG_ENDIAN 1
+#endif
+#elif defined(_BIG_ENDIAN)
+#define UNPACK_BIG_ENDIAN 1
+#endif
+
+#ifdef UNPACK_BIG_ENDIAN
 #define SWAP_INT(a) (((a>>24)&0xff) | ((a<<8)&0xff0000) | ((a>>8)&0xff00) | ((a<<24)&0xff000000))
 #else
 #define SWAP_INT(a) (a)
