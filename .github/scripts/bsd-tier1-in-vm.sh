@@ -174,6 +174,14 @@ if [ -f $R/make-support/exit-with-error ]; then
       grep -E 'Exception|Error|FAILED|failed|expected|timed out|^TEST RESULT' "$jtr" |
         grep -v '^[[:space:]]*at ' | head -15
     done
+  # A VM that crashed says why only in its hs_err file, which goes to the
+  # results artifact but not to this log; print the part that names it.
+  find $R/test-support -name 'hs_err_pid*.log' 2>/dev/null | head -5 |
+    while read e; do
+      echo "--- ${e#$R/test-support/} ---"
+      sed -n '1,/^---------------  T H R E A D/p' "$e" | grep -v '^#[[:space:]]*$' | head -25
+      sed -n '/^Native frames:/,/^$/p' "$e" | head -25
+    done
   echo "--- end ---"
 fi
 exit 0
