@@ -51,6 +51,13 @@ TARGETS += $(BUILD_LIBDT_SOCKET)
 ################################################################################
 
 # JDWP_LOGGING causes log messages to be compiled into the library.
+# iconv is in libc everywhere but on OpenBSD, where it is the libiconv
+# package; its iconv.h, which utf_util.c includes, renames iconv_open to
+# libiconv_open, and that is only in libiconv.
+ifeq ($(OPENJDK_TARGET_OS_ENV), bsd.openbsd)
+  LIBJDWP_ICONV := -liconv
+endif
+
 $(eval $(call SetupJdkLibrary, BUILD_LIBJDWP, \
     NAME := jdwp, \
     OPTIMIZATION := LOW, \
@@ -64,6 +71,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJDWP, \
     LIBS := $(JDKLIB_LIBS), \
     LIBS_linux := $(LIBDL), \
     LIBS_solaris := $(LIBDL), \
+    LIBS_bsd := $(LIBJDWP_ICONV), \
     LIBS_macosx := -liconv, \
     LIBS_aix := -liconv, \
     LIBS_windows := $(WIN_JAVA_LIB), \
