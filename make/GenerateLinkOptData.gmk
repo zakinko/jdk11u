@@ -32,6 +32,7 @@ default: all
 include $(SPEC)
 include MakeBase.gmk
 include JarArchive.gmk
+include Modules.gmk
 
 ################################################################################
 # Create a jar with our generator class. Using a jar is intentional since it
@@ -55,13 +56,24 @@ JLI_TRACE_FILE := $(LINK_OPT_DIR)/default_jli_trace.txt
 # image, so just use the external build jdk instead.
 ifeq ($(EXTERNAL_BUILDJDK), true)
   INTERIM_IMAGE_DIR := $(BUILD_JDK)
+  # An external build JDK is a whole JDK, not the interim image, and what
+  # HelloClasslist loads there is not what it loads in the interim image:
+  # DateFormat asks the CLDR provider for its locale data, which a whole
+  # JDK answers from jdk.localedata, whose classes the platform loader
+  # defines.  One of those in the default classlist makes every archive
+  # dumped from it an archive with platform classes, which CDS then maps
+  # only with a boot class path that matches exactly -- nothing appended
+  # with -Xbootclasspath/a.  Limit it to the modules of the interim image.
+  CLASSLIST_LIMIT_MODULES := --limit-modules \
+      $(subst $(SPACE),$(COMMA),$(strip $(INTERIM_IMAGE_MODULES)))
 endif
 
 $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST_JAR)
 	$(call MakeDir, $(LINK_OPT_DIR))
 	$(call LogInfo, Generating $(patsubst $(OUTPUTDIR)/%, %, $@))
 	$(call LogInfo, Generating $(patsubst $(OUTPUTDIR)/%, %, $(JLI_TRACE_FILE)))
-	$(FIXPATH) $(INTERIM_IMAGE_DIR)/bin/java -XX:DumpLoadedClassList=$@.raw \
+	$(FIXPATH) $(INTERIM_IMAGE_DIR)/bin/java $(CLASSLIST_LIMIT_MODULES) \
+	    -XX:DumpLoadedClassList=$@.raw \
 	    -Djava.lang.invoke.MethodHandle.TRACE_RESOLVE=true \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
 	    build.tools.classlist.HelloClasslist \
