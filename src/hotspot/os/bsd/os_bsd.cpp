@@ -3600,6 +3600,20 @@ void os::init(void) {
 
   init_random(1234567);
 
+#if defined(__FreeBSD__) && (defined(AMD64) || defined(AARCH64)) && INCLUDE_CDS
+  // CDS maps its archive at SharedBaseAddress and nowhere else, and the
+  // default of 32G is where FreeBSD puts the shared libraries: its mmap
+  // area starts after the data segment's 32G maximum size, so libjvm itself
+  // is found at 0x8_2xxx_xxxx.  Asked for the same place, the archive
+  // cannot be mapped -- and a dump that cannot reserve it takes whatever
+  // address mmap gives and records that, which a later run then cannot
+  // have either.  Put it at 16T, well above the libraries and far below
+  // the stack on both machines' 47- and 48-bit user address spaces.  This
+  // runs before the arguments are parsed, so -XX:SharedBaseAddress still
+  // wins.
+  FLAG_SET_DEFAULT(SharedBaseAddress, 16 * 1024 * G);
+#endif
+
   Bsd::set_page_size(getpagesize());
   if (Bsd::page_size() == -1) {
     fatal("os_bsd.cpp: os::init: sysconf failed (%s)", os::strerror(errno));
