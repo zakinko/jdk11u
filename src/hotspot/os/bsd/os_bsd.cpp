@@ -3600,9 +3600,10 @@ void os::init(void) {
 
   init_random(1234567);
 
-#if defined(__FreeBSD__) && (defined(AMD64) || defined(AARCH64)) && INCLUDE_CDS
+#if (defined(__FreeBSD__) || defined(__DragonFly__)) && (defined(AMD64) || defined(AARCH64)) && INCLUDE_CDS
   // CDS maps its archive at SharedBaseAddress and nowhere else, and the
-  // default of 32G is where FreeBSD puts the shared libraries: its mmap
+  // default of 32G is where FreeBSD, and DragonFly after it, puts the
+  // shared libraries: its mmap
   // area starts after the data segment's 32G maximum size, so libjvm itself
   // is found at 0x8_2xxx_xxxx.  Asked for the same place, the archive
   // cannot be mapped -- and a dump that cannot reserve it takes whatever
