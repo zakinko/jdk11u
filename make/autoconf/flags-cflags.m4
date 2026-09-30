@@ -911,6 +911,16 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_CPU_DEP],
     $1_WARNING_CFLAGS_JVM="-Wno-format-zero-length -Wtype-limits -Wuninitialized"
   fi
 
+  # The same undefined behaviour gcc 6 is told to stand back from is there
+  # for clang: HotSpot 11 still asks `this == NULL` in member functions
+  # (oopDesc::print_value_on, for one, which prints "NULL" for a null
+  # field), and clang deletes the test, so the null goes on to be
+  # dereferenced.  Only the flags this clang accepts are passed.
+  if test "x$TOOLCHAIN_TYPE" = xclang; then
+    FLAGS_SETUP_GCC6_COMPILER_FLAGS($1, $3)
+    $1_TOOLCHAIN_CFLAGS="${$1_GCC6_CFLAGS}"
+  fi
+
   if test "x$TOOLCHAIN_TYPE" = xmicrosoft && test "x$ENABLE_REPRODUCIBLE_BUILD" = xtrue; then
     # Enabling deterministic creates warnings if __DATE__ or __TIME__ are
     # used, and since we are, silence that warning.
