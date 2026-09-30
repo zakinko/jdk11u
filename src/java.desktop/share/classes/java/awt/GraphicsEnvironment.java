@@ -186,6 +186,7 @@ public abstract class GraphicsEnvironment {
                                  "FreeBSD".equals(osName) ||
                                  "NetBSD".equals(osName) ||
                                  "OpenBSD".equals(osName) ||
+                                 "DragonFly".equals(osName) ||
                                  "AIX".equals(osName)) &&
                                  (display == null || display.trim().isEmpty());
                         }
