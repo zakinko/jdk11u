@@ -85,8 +85,13 @@ fi
 
 if [ "$os" = OpenBSD ]; then
   # The JVM reserves its heap and code cache up front, well past the
-  # default data size limit of a login class.
+  # default data size limit of a login class.  Tests that commit a large
+  # heap -- java/lang/StringBuilder/HugeCapacity asks for -Xms5G on a guest
+  # with 8G -- go past the hard limit as well, and fail in os::commit_memory
+  # with ENOMEM; the job runs as root, which may raise it.
+  ulimit -Hd unlimited 2>/dev/null || :
   ulimit -Sd `ulimit -Hd`
+  echo "data size limit: `ulimit -Sd` (hard `ulimit -Hd`)"
 fi
 
 # Print what a JVM that died left behind: the hs_err file says which frame
