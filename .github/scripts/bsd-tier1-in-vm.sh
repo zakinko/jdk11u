@@ -147,6 +147,20 @@ gnu=""
 if command -v gsed >/dev/null 2>&1; then gnu="$gnu SED=`command -v gsed`"; fi
 if command -v ggrep >/dev/null 2>&1; then gnu="$gnu GREP=`command -v ggrep`"; fi
 
+# DragonFly's guest has twice stopped answering ssh in the middle of jdk
+# part 1, and what it was short of went down with it.  Print the process
+# count, memory and swap once a minute, so that the last lines before the
+# silence say whether it ran out of either.
+if [ "$os" = DragonFly ]; then
+  ( while sleep 60; do
+      echo "[watch] `date -u +%H:%M:%S` procs=`ps ax | wc -l | tr -d ' '`" \
+           "vmstat: `vmstat | tail -1`" "swap: `pstat -s 2>/dev/null | tail -1`"
+    done ) &
+  watch=$!
+  # Left running, it would hold ssh's output open past a failed make.
+  trap 'kill $watch 2>/dev/null' EXIT
+fi
+
 gmake run-test-prebuilt $gnu \
   TEST="$suite" \
   BOOT_JDK="$JDK" \
