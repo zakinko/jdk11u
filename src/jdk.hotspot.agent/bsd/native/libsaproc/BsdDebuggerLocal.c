@@ -80,6 +80,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "cds.h"
+
 #ifdef __FreeBSD__
 #include <libutil.h>
 #else
@@ -196,6 +198,7 @@ struct ps_prochandle {
   map_info    *maps;
   thread_info *threads;
   lib_info    *libs;
+  lib_info    *archive;   /* the CDS archive's read-only regions, for a core */
 };
 
 static struct ps_prochandle* get_proc(JNIEnv* env, jobject this_obj) {
@@ -561,10 +564,15 @@ static int core_pread(int fd, void* buf, size_t len, off_t off) {
   return 0;
 }
 
+static int archive_read(struct ps_prochandle* ph, uintptr_t addr, void* buf, size_t len);
+
 /* The part of a read that the object on disk can answer, or -1. */
 static int lib_read(struct ps_prochandle* ph, uintptr_t addr, void* buf, size_t len) {
   lib_info* lib;
 
+  if (archive_read(ph, addr, buf, len) == 0) {
+    return 0;
+  }
   for (lib = ph->libs; lib != NULL; lib = lib->next) {
     seg_info* sg;
     if (lib->fd < 0 || !lib_contains(lib, addr)) {
@@ -905,6 +913,135 @@ static void read_core_libs(struct ps_prochandle* ph, const char* execName,
   }
 }
 
+/*
+ * The CDS archive is mapped from classes.jsa, and its read-only regions are
+ * exactly the pages NetBSD leaves out of a core: PROT_READ, file-backed and
+ * never written.  The archive is no ELF object, so nothing above knows the
+ * file still has them, and the symbols and method data in the ro region
+ * read back as zeroes -- "No suitable match for type of address
+ * 0x80089f630" and "expecting '('" from ClhsdbCDSCore.  Linux's agent has the same problem and the same
+ * answer (init_classsharing_workaround in its ps_core.c): ask the core
+ * whether the VM was sharing and which archive it mapped, and read those
+ * regions from the archive's header.  Writable regions are in the core.
+ */
+static jlong lookup_in_lib(lib_info* lib, const char* sym);
+
+static void add_core_cds_archive(struct ps_prochandle* ph) {
+  lib_info* jvm;
+  lib_info* archive;
+  jlong use_addr, path_addr_addr;
+  unsigned char use_shared_spaces = 0;
+  uint64_t path_addr = 0;
+  char path[PATH_MAX];
+  size_t i;
+  int m;
+  struct CDSFileMapHeaderBase header;
+  struct stat st;
+
+  for (jvm = ph->libs; jvm != NULL; jvm = jvm->next) {
+    if (strcmp(base_name(jvm->name), "libjvm.so") == 0) {
+      break;
+    }
+  }
+  if (jvm == NULL) {
+    return;
+  }
+  /* bool UseSharedSpaces, and Arguments::SharedArchivePath, a char*. */
+  use_addr = lookup_in_lib(jvm, "UseSharedSpaces");
+  path_addr_addr = lookup_in_lib(jvm, "_ZN9Arguments17SharedArchivePathE");
+  if (use_addr == 0 || path_addr_addr == 0 ||
+      core_read(ph, (uintptr_t)use_addr, &use_shared_spaces, 1) != 0 ||
+      use_shared_spaces == 0 ||
+      core_read(ph, (uintptr_t)path_addr_addr, &path_addr, sizeof(path_addr)) != 0 ||
+      path_addr == 0) {
+    return;
+  }
+  for (i = 0; i < sizeof(path) - 1; i++) {
+    if (core_read(ph, (uintptr_t)path_addr + i, &path[i], 1) != 0) {
+      return;
+    }
+    if (path[i] == '\0') {
+      break;
+    }
+  }
+  path[i] = '\0';
+
+  archive = (lib_info*)calloc(1, sizeof(*archive));
+  if (archive == NULL) {
+    return;
+  }
+  archive->fd = open(path, O_RDONLY);
+  if (archive->fd < 0 ||
+      core_pread(archive->fd, &header, sizeof(header), 0) != 0 ||
+      header._magic != CDS_ARCHIVE_MAGIC ||
+      header._version != CURRENT_CDS_ARCHIVE_VERSION ||
+      (archive->name = strdup(path)) == NULL) {
+    if (archive->fd >= 0) {
+      close(archive->fd);
+    }
+    free(archive);
+    return;
+  }
+  if (fstat(archive->fd, &st) != 0) {
+    st.st_size = 0;
+  }
+  for (m = 0; m < NUM_CDS_REGIONS; m++) {
+    struct CDSFileMapRegion* r = &header._space[m];
+    seg_info* sg;
+    /* A region the dump left unused can be left uninitialized as well --
+       the last of the nine held garbage in a Linux x86_64 archive --
+       so believe only one that the file actually holds. */
+    if (r->_read_only != 1 || r->_used == 0 || r->_addr._base == NULL ||
+        r->_file_offset > (size_t)st.st_size ||
+        r->_used > (size_t)st.st_size - r->_file_offset) {
+      continue;
+    }
+    sg = (seg_info*)calloc(1, sizeof(*sg));
+    if (sg == NULL) {
+      continue;
+    }
+    sg->vaddr = (uintptr_t)r->_addr._base;
+    sg->filesz = r->_used;
+    sg->offset = (off_t)r->_file_offset;
+    sg->next = archive->segs;
+    archive->segs = sg;
+  }
+  ph->archive = archive;
+}
+
+/*
+ * The part of a read that falls in one of the archive's read-only regions.
+ * A region is mapped whole pages at a time and its used size stops short of
+ * the last one, so a page read that runs past it reads zeroes there, as the
+ * mapping did.
+ */
+static int archive_read(struct ps_prochandle* ph, uintptr_t addr, void* buf, size_t len) {
+  seg_info* sg;
+
+  if (ph->archive == NULL) {
+    return -1;
+  }
+  for (sg = ph->archive->segs; sg != NULL; sg = sg->next) {
+    size_t page = (size_t)getpagesize();
+    uintptr_t end = sg->vaddr + ((sg->filesz + page - 1) & ~(page - 1));
+    size_t n;
+    if (addr < sg->vaddr || addr + len > end) {
+      continue;
+    }
+    n = addr < sg->vaddr + sg->filesz ? sg->vaddr + sg->filesz - addr : 0;
+    if (n > len) {
+      n = len;
+    }
+    if (n > 0 &&
+        core_pread(ph->archive->fd, buf, n, sg->offset + (off_t)(addr - sg->vaddr)) != 0) {
+      return -1;
+    }
+    memset((char*)buf + n, 0, len - n);
+    return 0;
+  }
+  return -1;
+}
+
 /* Returns 0 on success, leaving ph filled in. */
 static int open_core(struct ps_prochandle* ph, const char* execName,
                      const char* coreName) {
@@ -960,6 +1097,7 @@ static int open_core(struct ps_prochandle* ph, const char* execName,
   (void)phent; (void)phnum;
   if (phdr_addr != 0) {
     read_core_libs(ph, execName, phdr_addr);
+    add_core_cds_archive(ph);
   }
   return 0;
 }
@@ -1052,6 +1190,7 @@ static void free_proc(struct ps_prochandle* ph) {
     t = next;
   }
   free_libs(ph->libs);
+  free_libs(ph->archive);
   if (ph->core_fd >= 0) {
     close(ph->core_fd);
   }
