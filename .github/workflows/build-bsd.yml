@@ -91,7 +91,15 @@ jobs:
           platform: linux-x64
 
       - name: 'Install toolchain and dependencies'
+        # A mirror that stopped answering has held apt here for the job's
+        # whole six hours; fail in minutes instead, so a re-run can follow.
+        timeout-minutes: 45
         run: |
+          # Retry a fetch that fails or stalls past a minute, rather than
+          # failing the job on the first one.
+          printf '%s\n' 'Acquire::Retries "5";' \
+              'Acquire::http::Timeout "60";' 'Acquire::https::Timeout "60";' |
+            sudo tee /etc/apt/apt.conf.d/99-stall-timeout >/dev/null
           sudo apt-get update
           sudo apt-get install --only-upgrade apt
           sudo apt-get install clang lld llvm autoconf zip unzip file \
