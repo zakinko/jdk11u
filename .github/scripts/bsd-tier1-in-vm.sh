@@ -186,6 +186,12 @@ if [ -f $R/make-support/exit-with-error ]; then
       echo "--- ${e#$R/test-support/} ---"
       sed -n '1,/^---------------  T H R E A D/p' "$e" | grep -v '^#[[:space:]]*$' | head -25
       sed -n '/^Native frames:/,/^$/p' "$e" | head -25
+      # A pc in no library HotSpot could name ("C  0x...") is placed only by
+      # the fault address and the load addresses, so show those too.
+      if grep -q '^C  0x' "$e"; then
+        grep -E '^siginfo:' "$e" | head -1
+        sed -n '/^Dynamic libraries:/,/^$/p' "$e" | head -60
+      fi
     done
   echo "--- end ---"
 fi
