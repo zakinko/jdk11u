@@ -135,6 +135,11 @@ jobs:
         if: inputs.target-os == 'netbsd'
 
       # jtreg's process tests read /proc, which FreeBSD does not mount.
+      # The emulated aarch64 guest's rsync has failed the copy in more than
+      # once -- "Invalid block index 111514190 (count=0) [receiver]", then
+      # "rsync error: protocol incompatibility (code 2)" -- and once hung
+      # in it for the job's six hours; a tar stream over the same ssh has
+      # no block protocol to get wrong.
       - name: 'Run tests in a FreeBSD virtual machine'
         uses: vmactions/freebsd-vm@v1
         with:
@@ -143,6 +148,7 @@ jobs:
           mem: 8192
           cpu: 4
           usesh: true
+          sync: ${{ inputs.arch == 'aarch64' && 'tar' || 'rsync' }}
           copyback: true
           envs: 'TEST_SUITE TIMEOUT_FACTOR'
           prepare: |
