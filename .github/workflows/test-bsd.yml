@@ -220,6 +220,11 @@ jobs:
                 d="results/$(dirname "$f")"; mkdir -p "$d"; cp "$f" "$d/"
               done
           fi
+          # The VM running jtreg itself is the JDK under test, and it leaves
+          # its hs_err here in the workspace, not under build.
+          for f in hs_err_pid*.log replay_pid*.log; do
+            if [ -f "$f" ]; then cp "$f" results/; fi
+          done
         if: always()
 
       - name: 'Upload test results'

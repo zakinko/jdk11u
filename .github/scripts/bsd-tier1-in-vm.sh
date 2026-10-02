@@ -195,7 +195,10 @@ if [ -f $R/make-support/exit-with-error ]; then
     done
   # A VM that crashed says why only in its hs_err file, which goes to the
   # results artifact but not to this log; print the part that names it.
-  find $R/test-support -name 'hs_err_pid*.log' 2>/dev/null | head -5 |
+  # jtreg runs on the JDK under test, and when that VM dies its hs_err
+  # lands in the working directory, outside test-support.
+  { find $R/test-support -name 'hs_err_pid*.log' 2>/dev/null
+    ls "$PWD"/hs_err_pid*.log 2>/dev/null; } | head -5 |
     while read e; do
       echo "--- ${e#$R/test-support/} ---"
       sed -n '1,/^---------------  T H R E A D/p' "$e" | grep -v '^#[[:space:]]*$' | head -25
