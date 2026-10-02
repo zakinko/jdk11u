@@ -111,6 +111,20 @@ uname -a
 readelf -d "$JDK/bin/java" 2>/dev/null | grep -E 'RPATH|RUNPATH|NEEDED' ||
   objdump -p "$JDK/bin/java" 2>/dev/null | grep -E 'RPATH|RUNPATH|NEEDED' || :
 ldd "$JDK/bin/java" 2>&1 | head -8
+# T6394683 fails on DragonFly with "Cannot create files": it reopens an
+# empty file with O_TRUNC once a second, four times, waiting for its
+# modification time to pass another file's, and it never does.  Say
+# whether this file system moves the time for that open at all, and for
+# a write, which is what the test needs to know.
+if [ "$os" = DragonFly ]; then
+  p="$PWD/mtime.probe"
+  rm -f "$p"; : > "$p"; t0=`stat -f %m "$p"`
+  sleep 2; : > "$p"; t1=`stat -f %m "$p"`
+  sleep 2; echo x > "$p"; t2=`stat -f %m "$p"`
+  echo "mtime: created $t0, empty file truncated again $t1, written $t2"
+  df "$PWD" | tail -1
+  rm -f "$p"
+fi
 echo "--- end ---"
 
 # Start the JDK itself before anything is built with it, so that a VM that
