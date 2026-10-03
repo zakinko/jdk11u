@@ -1438,6 +1438,21 @@ void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
   return os::get_default_process_handle();
 #else
   log_info(os)("attempting shared library load of %s", filename);
+#ifdef __DragonFly__
+  // DragonFly's ld-elf.so.2 takes the ELF header of a file shorter than
+  // one from a mapping past the end of the file, and the process dies in
+  // the runtime linker instead of dlopen failing.  Refuse such a file
+  // here, as the other systems' runtime linkers do.
+  struct stat st;
+  if (::stat(filename, &st) == 0 && S_ISREG(st.st_mode) &&
+      st.st_size < (off_t)sizeof(Elf32_Ehdr)) {
+    if (ebuf != NULL && ebuflen > 0) {
+      jio_snprintf(ebuf, ebuflen, "%s: invalid file format", filename);
+    }
+    log_info(os)("shared library load of %s failed, file too short", filename);
+    return NULL;
+  }
+#endif
   void * result= ::dlopen(filename, RTLD_LAZY);
   if (result != NULL) {
     Events::log(NULL, "Loaded shared library %s", filename);
