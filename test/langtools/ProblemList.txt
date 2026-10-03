@@ -54,6 +54,7 @@ tools/javac/annotations/typeAnnotations/referenceinfos/NestedTypes.java         
 tools/javac/warnings/suppress/TypeAnnotations.java                              8057683    generic-all    improve ordering of errors with type annotations
 tools/javac/modules/SourceInSymlinkTest.java                                    8180263    windows-all    fails when run on a subst drive
 tools/javac/importscope/T8193717.java                                           8203925    generic-all    the test requires too much memory
+tools/javac/6394683/T6394683.java                                               0000000    dragonfly-all  re-creates an empty file to make it newer, and DragonFly does not move the mtime of an empty file opened with O_TRUNC
 
 ###########################################################################
 #
