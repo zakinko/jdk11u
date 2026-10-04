@@ -111,15 +111,6 @@ uname -a
 readelf -d "$JDK/bin/java" 2>/dev/null | grep -E 'RPATH|RUNPATH|NEEDED' ||
   objdump -p "$JDK/bin/java" 2>/dev/null | grep -E 'RPATH|RUNPATH|NEEDED' || :
 ldd "$JDK/bin/java" 2>&1 | head -8
-# DragonFly's jdk/tier1 part 1 loses its guest seconds after
-# java/lang/ProcessHandle/InfoTest passes, with processes, memory and swap
-# all to spare.  InfoTest ends by force-killing every descendant of the
-# test VM, so a descendants() that named processes outside the test's own
-# tree would kill sshd.  Show what ProcessHandle sees around one child.
-if [ "$os" = DragonFly ]; then
-  "$JDK/bin/java" .github/scripts/DescProbe.java || :
-  echo "  ps: `ps ax | wc -l | tr -d ' '` lines"
-fi
 echo "--- end ---"
 
 # Start the JDK itself before anything is built with it, so that a VM that
