@@ -147,14 +147,18 @@ gnu=""
 if command -v gsed >/dev/null 2>&1; then gnu="$gnu SED=`command -v gsed`"; fi
 if command -v ggrep >/dev/null 2>&1; then gnu="$gnu GREP=`command -v ggrep`"; fi
 
-# DragonFly's guest has twice stopped answering ssh in the middle of jdk
-# part 1, and what it was short of went down with it.  Print the process
-# count, memory and swap once a minute, so that the last lines before the
-# silence say whether it ran out of either.
+# DragonFly's guest stops answering ssh in the middle of jdk part 1, in
+# the java/lang/Process* tests, with processes, memory and swap to spare.
+# Print those every 15 seconds anyway, and with them the othervm tests
+# then running -- jtreg's MainWrapper names each one's .jta on its
+# command line -- so that the last lines before the silence name the
+# tests the guest was running when it went.
 if [ "$os" = DragonFly ]; then
-  ( while sleep 60; do
+  ( while sleep 15; do
       echo "[watch] `date -u +%H:%M:%S` procs=`ps ax | wc -l | tr -d ' '`" \
            "vmstat: `vmstat | tail -1`" "swap: `pstat -s 2>/dev/null | tail -1`"
+      echo "[watch] running:" `ps -ax -ww -o args 2>/dev/null |
+        sed -n 's|.*/JTwork/\([^ ]*\)\.d/[^ ]*\.jta.*|\1|p' | sort -u`
     done ) &
   watch=$!
   # Left running, it would hold ssh's output open past a failed make.
