@@ -149,16 +149,17 @@ if command -v ggrep >/dev/null 2>&1; then gnu="$gnu GREP=`command -v ggrep`"; fi
 
 # DragonFly's guest stops answering ssh in the middle of jdk part 1, in
 # the java/lang/Process* tests, with processes, memory and swap to spare.
-# Print those every 15 seconds anyway, and with them the othervm tests
-# then running -- jtreg's MainWrapper names each one's .jta on its
-# command line -- so that the last lines before the silence name the
-# tests the guest was running when it went.
+# Print those every 15 seconds anyway, and with them the end of each
+# test VM's command line -- the class or file it runs -- so that the
+# last lines before the silence name what the guest was running.
+# (jtreg's own VM and its agents are left out; they run throughout.)
 if [ "$os" = DragonFly ]; then
   ( while sleep 15; do
       echo "[watch] `date -u +%H:%M:%S` procs=`ps ax | wc -l | tr -d ' '`" \
            "vmstat: `vmstat | tail -1`" "swap: `pstat -s 2>/dev/null | tail -1`"
-      echo "[watch] running:" `ps -ax -ww -o args 2>/dev/null |
-        sed -n 's|.*/JTwork/\([^ ]*\)\.d/[^ ]*\.jta.*|\1|p' | sort -u`
+      ps -ax -ww -o pid,args 2>/dev/null | grep '[/]bin/java ' |
+        grep -v -e 'jtreg\.jar' -e 'AgentServer' |
+        awk '{ l = $0; if (length(l) > 140) l = substr(l, length(l) - 139); print "[watch] running:", l }'
     done ) &
   watch=$!
   # Left running, it would hold ssh's output open past a failed make.
