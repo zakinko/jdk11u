@@ -134,6 +134,17 @@ jobs:
           TIMEOUT_FACTOR: ${{ inputs.timeout-factor }}
         if: inputs.target-os == 'netbsd'
 
+      # What reaches the emulated FreeBSD aarch64 guest arrives damaged now
+      # and then, whatever carries it: rsync's "Invalid block index", tar's
+      # "Damaged tar archive (bad header checksum)", and a jmod jlink could
+      # not read, "java.util.zip.ZipException: invalid distance too far
+      # back".  Its tier1 is hotspot alone, which reads the test tree and
+      # the bundles but not the JDK's sources, so leave those 400 MB behind
+      # and give the copy that much less to get wrong.
+      - name: 'Leave the sources out of the FreeBSD aarch64 guest'
+        run: rm -rf src
+        if: inputs.target-os == 'freebsd' && inputs.arch == 'aarch64' && inputs.hotspot-only
+
       # jtreg's process tests read /proc, which FreeBSD does not mount.
       # The emulated aarch64 guest's rsync has failed the copy in more than
       # once -- "Invalid block index 111514190 (count=0) [receiver]", then
