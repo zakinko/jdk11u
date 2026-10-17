@@ -48,6 +48,14 @@
 #ifdef __DragonFly__
 #include <sys/param.h> // For MAXPATHLEN
 #include <sys/kinfo.h> // For kinfo_proc
+// p_flags bits kinfo_proc's kp_flags carries; <sys/proc.h> defines them only
+// for _KERNEL and _KERNEL_STRUCTURES.  The values are those of 6.4.
+#ifndef P_SYSTEM
+#define P_SYSTEM 0x00200
+#endif
+#ifndef P_WEXIT
+#define P_WEXIT  0x02000
+#endif
 #endif
 
 /* TODO: Refactor. */
@@ -458,6 +466,26 @@ void os_getCmdlineAndUserInfo(JNIEnv *env, jobject jinfo, pid_t pid) {
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = pid;
+#endif
+#ifdef __DragonFly__
+    // DragonFly's kern.proc.pathname hands a process that is part way
+    // through exit -- its file descriptor table already freed, p_fd NULL --
+    // to cache_fullpath(), and the kernel stops dead; a guest running
+    // jdk/tier1 froze that way, again and again, just after InfoTest had
+    // killed its children.  Such a process has no executable to report, and
+    // neither has a system process, so do not ask.  P_WEXIT is set at the
+    // start of exit1(), well before fdfree(), which leaves only the moment
+    // between this look and the next for the process to start exiting.
+    {
+        struct KINFO_PROC_T kp;
+        size_t kpSize = sizeof kp;
+        int kpMib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+        if (sysctl(kpMib, 4, &kp, &kpSize, NULL, 0) == -1 || kpSize == 0 ||
+            kp.kp_stat == SZOMB ||
+            (kp.kp_flags & (P_WEXIT | P_SYSTEM)) != 0) {
+            return;
+        }
+    }
 #endif
     // Info is a snapshot of another process, which may exit at any point
     // between one system call and the next.  NetBSD reports that race with
