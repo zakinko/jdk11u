@@ -53,7 +53,8 @@ unsupported() {
 fetch() {
   echo "fetching $2"
   curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors \
-      --max-time 1800 --speed-limit 10240 --speed-time 120 -o "$1" "$2"
+      --max-time 1800 --speed-limit 10240 --speed-time 120 -o "$1" "$2" ||
+    return
   ls -l "$1"
 }
 
@@ -96,11 +97,15 @@ case "$os" in
       *) unsupported ;;
     esac
     base=https://cdn.netbsd.org/pub/NetBSD/NetBSD-$netbsd_release/$port/binary/sets
+    # A release that has been superseded leaves the mirrors for the archive:
+    # 10.1's sets were answering 404 on cdn.netbsd.org by 2026-10-17.
+    archive=https://archive.netbsd.org/pub/NetBSD-archive/NetBSD-$netbsd_release/$port/binary/sets
     # NetBSD is the one BSD here that ships X11 as ordinary sets, so a
     # headful build can be cross-compiled for it.  They cost about 20MB
     # and a headless build simply does not look at them.
     for set in base comp xbase xcomp; do
-      fetch "$set.$ext" "$base/$set.$ext"
+      fetch "$set.$ext" "$base/$set.$ext" ||
+        fetch "$set.$ext" "$archive/$set.$ext"
       extract "$set.$ext"
     done
     # The machines with no HotSpot port on BSD are built as Zero, which
