@@ -44,6 +44,36 @@ TESTS="$PWD/bundles/tests"
 JT="$PWD/jtreg/installed"
 os=`uname -s`
 
+# The emulated FreeBSD aarch64 guest sometimes receives files damaged; the
+# runner lists their SHA-256s in guest-files.sha256 and serves the
+# workspace on 10.0.2.2:8765.  Check every listed file and fetch again,
+# up to three times, any that does not match, before anything runs.
+if [ -f guest-files.sha256 ] && [ "$os" = FreeBSD ]; then
+  verify() {
+    while read -r sum path; do
+      [ "`sha256 -q "$path" 2>/dev/null`" = "$sum" ] || echo "$sum $path"
+    done < "$1"
+  }
+  verify guest-files.sha256 > guest-files.bad
+  echo "copy check: `wc -l < guest-files.sha256 | tr -d ' '` files," \
+       "`wc -l < guest-files.bad | tr -d ' '` damaged"
+  for attempt in 1 2 3; do
+    [ -s guest-files.bad ] || break
+    while read -r sum path; do
+      echo "  fetching again: $path"
+      url=$(printf '%s' "$path" | sed 's/%/%25/g; s/ /%20/g; s/#/%23/g; s/[$]/%24/g')
+      fetch -q -o "$path" "http://10.0.2.2:8765/$url" || :
+    done < guest-files.bad
+    verify guest-files.bad > guest-files.still
+    mv guest-files.still guest-files.bad
+  done
+  if [ -s guest-files.bad ]; then
+    echo "copy check: still damaged after three fetches:"
+    sed 's/^/  /' guest-files.bad | head -20
+    exit 1
+  fi
+fi
+
 if [ "$os" = NetBSD ]; then
   # A JDK built on NetBSD is marked as it is linked; one cross-built from
   # Linux cannot be, because paxctl(8) only exists here.  Without the mark
