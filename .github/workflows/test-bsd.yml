@@ -150,20 +150,21 @@ jobs:
       # Truncated class file" and another had two VMs die of SIGILL at the
       # first instruction of DefNewGeneration::unsafe_max_alloc_nogc, the
       # same libjvm.so offset both times -- a JDK that arrived corrupt, not
-      # one that misbehaves.  So: drop the bundle archives, which are
-      # already unpacked and only add to the copy; list a SHA-256 for every
-      # file of the JDK, the test image and jtreg; and serve the workspace
-      # over HTTP on the runner's loopback, which the guest reaches as
-      # 10.0.2.2, so that bsd-tier1-in-vm.sh can check what arrived and
-      # fetch again whatever did not arrive intact.
+      # one that misbehaves.  Checked, it is one file in about two thousand
+      # each time, a different one each time.  So list a SHA-256 for every
+      # file of the JDK, the test image and jtreg, for bsd-tier1-in-vm.sh to
+      # check, and keep a second copy of each in the guest to repair from:
+      # the bundle archives, which are already there, and one of jtreg.
+      # The guest cannot reach the runner at 10.0.2.2 to fetch them again.
+      # The symbols are left behind; nothing in tier1 reads them.
       - name: 'Let the FreeBSD aarch64 guest check and repair its copy'
         run: |
-          rm -f bundles/*.tar.gz bundles/*.zip
+          rm -rf bundles/symbols bundles/symbols-*.tar.gz
+          tar -czf guest-jtreg.tar.gz jtreg/installed
           find bundles/jdk bundles/tests jtreg/installed -type f -print0 |
             xargs -0 sha256sum > guest-files.sha256
           wc -l guest-files.sha256
-          nohup python3 -m http.server 8765 --bind 127.0.0.1 \
-              > http-server.log 2>&1 &
+          ls -l bundles guest-jtreg.tar.gz
         if: inputs.target-os == 'freebsd' && inputs.arch == 'aarch64' && inputs.hotspot-only
 
       # jtreg's process tests read /proc, which FreeBSD does not mount.

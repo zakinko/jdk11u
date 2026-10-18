@@ -44,31 +44,45 @@ TESTS="$PWD/bundles/tests"
 JT="$PWD/jtreg/installed"
 os=`uname -s`
 
-# The emulated FreeBSD aarch64 guest sometimes receives files damaged; the
-# runner lists their SHA-256s in guest-files.sha256 and serves the
-# workspace on 10.0.2.2:8765.  Check every listed file and fetch again,
-# up to three times, any that does not match, before anything runs.
+# The emulated FreeBSD aarch64 guest receives a file damaged now and then
+# -- one in about two thousand, a different one each time.  The runner
+# lists the SHA-256 of every file of the JDK, the test image and jtreg in
+# guest-files.sha256, and sends the archives they were unpacked from along
+# with them.  Check every listed file, and take each one that does not
+# match out of its archive again; gzip's CRC stops a damaged archive from
+# passing a damaged file on.  The guest cannot reach the runner to fetch
+# anything itself.
 if [ -f guest-files.sha256 ] && [ "$os" = FreeBSD ]; then
   verify() {
     while read -r sum path; do
       [ "`sha256 -q "$path" 2>/dev/null`" = "$sum" ] || echo "$sum $path"
     done < "$1"
   }
+  # Extract one file of the workspace from the archive that holds it.  A
+  # member may be stored with or without a leading "./".
+  restore() {
+    case "$1" in
+      bundles/jdk/*)   a=`ls bundles/jdk-*.tar.gz`;   d=bundles/jdk;   m=${1#bundles/jdk/} ;;
+      bundles/tests/*) a=`ls bundles/tests-*.tar.gz`; d=bundles/tests; m=${1#bundles/tests/} ;;
+      jtreg/*)         a=guest-jtreg.tar.gz;          d=.;             m=$1 ;;
+      *) return 1 ;;
+    esac
+    tar -xzf "$a" -C "$d" "$m" 2>/dev/null || tar -xzf "$a" -C "$d" "./$m"
+  }
   verify guest-files.sha256 > guest-files.bad
   echo "copy check: `wc -l < guest-files.sha256 | tr -d ' '` files," \
        "`wc -l < guest-files.bad | tr -d ' '` damaged"
-  for attempt in 1 2 3; do
+  for attempt in 1 2; do
     [ -s guest-files.bad ] || break
     while read -r sum path; do
-      echo "  fetching again: $path"
-      url=$(printf '%s' "$path" | sed 's/%/%25/g; s/ /%20/g; s/#/%23/g; s/[$]/%24/g')
-      fetch -q -o "$path" "http://10.0.2.2:8765/$url" || :
+      echo "  restoring from its archive: $path"
+      restore "$path" || echo "  (could not extract $path)"
     done < guest-files.bad
     verify guest-files.bad > guest-files.still
     mv guest-files.still guest-files.bad
   done
   if [ -s guest-files.bad ]; then
-    echo "copy check: still damaged after three fetches:"
+    echo "copy check: still damaged:"
     sed 's/^/  /' guest-files.bad | head -20
     exit 1
   fi
