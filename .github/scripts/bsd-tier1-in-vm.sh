@@ -247,4 +247,14 @@ if [ -f $R/make-support/exit-with-error ]; then
     done
   echo "--- end ---"
 fi
+# The FreeBSD aarch64 guest copies its workspace back as a ustar archive,
+# which cannot hold a path past 255 bytes, and jtreg's compiled classes go
+# that deep: "classes/0/runtime/ErrorHandling/TestHeapDumpOnOutOfMemoryError
+# InMetaspace.d/jdk/test/lib/hprof/model/AbstractJavaHeapObjectVisitor.class:
+# Pathname too long", 196 times, and the copy back exited 2 and failed a
+# part whose 430 tests had all passed.  Nothing read from the results needs
+# them, so leave them behind.
+if [ -f guest-files.sha256 ]; then
+  rm -rf $R/test-support/*/classes
+fi
 exit 0
