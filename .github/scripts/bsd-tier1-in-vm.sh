@@ -270,5 +270,13 @@ fi
 # them, so leave them behind.
 if [ -f guest-files.sha256 ]; then
   rm -rf $R/test-support/*/classes
+  # The copy back is damaged now and then as well -- host tar "Skipping to
+  # next header", exit 2, after 206 of 206 had passed -- so give it as
+  # little as possible: the results, and nothing the runner already has.
+  # And say in a file of its own that the tests passed, so that a copy
+  # back that loses the failure marker cannot pass for a clean run; the
+  # job fails unless this file arrives.
+  rm -rf $R/test-support/*/scratch bundles jtreg test make guest-jtreg.tar.gz
+  [ -f $R/make-support/exit-with-error ] || touch $R/guest-tests-passed
 fi
 exit 0

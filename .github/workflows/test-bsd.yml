@@ -175,6 +175,11 @@ jobs:
       # no block protocol to get wrong.
       - name: 'Run tests in a FreeBSD virtual machine'
         uses: vmactions/freebsd-vm@v1
+        # The aarch64 guest's copy back can fail on damage after the tests
+        # are done; the verdict is taken from what came back, below, by
+        # 'Fail the job when a test failed', which insists on the guest's
+        # own word that it passed.
+        continue-on-error: ${{ inputs.arch == 'aarch64' }}
         with:
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
@@ -285,5 +290,12 @@ jobs:
           if [ -f "$R/make-support/exit-with-error" ]; then
             echo "tests failed -- the names are in the log above, the .jtr"
             echo "and hs_err files in the results artifact"
+            exit 1
+          fi
+          # A guest whose copy back may be damaged (FreeBSD aarch64, the one
+          # given guest-files.sha256) has to say outright that it passed.
+          if [ -f guest-files.sha256 ] && [ ! -f "$R/guest-tests-passed" ]; then
+            echo "the guest did not report a clean run back -- see the log"
+            echo "above for the tests, or for what happened to the copy"
             exit 1
           fi
